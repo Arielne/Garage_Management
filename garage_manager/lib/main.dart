@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'core/fake_data.dart';
+import 'core/models.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_card.dart';
 import 'widgets/app_scaffold.dart';
@@ -32,6 +34,8 @@ class HomePlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final featuredInvoice = demoInvoices.first;
+
     return AppScaffold(
       title: 'Garage Manager',
       navItems: const [
@@ -68,35 +72,27 @@ class HomePlaceholderScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const AppCard(
+          AppCard(
             child: StageTimeline(
-              stages: [
-                TimelineStage(
-                  title: 'Tiếp nhận xe',
-                  description: 'Khách đã gửi xe và mô tả tình trạng.',
-                  status: AppStatus.done,
-                ),
-                TimelineStage(
-                  title: 'Kiểm tra',
-                  description: 'Thợ đang kiểm tra phụ tùng và báo giá.',
-                  status: AppStatus.active,
-                ),
-                TimelineStage(
-                  title: 'Hoàn tất',
-                  description: 'Chờ hoàn tất sửa chữa và thanh toán.',
-                  status: AppStatus.idle,
-                ),
-              ],
+              stages: demoRepairStages
+                  .map(
+                    (stage) => TimelineStage(
+                      title: stage.title,
+                      description: stage.description,
+                      status: _repairStageToAppStatus(stage.status),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           const SizedBox(height: 16),
-          const InvoiceCard(
-            code: 'HD-2026-001',
-            customerName: 'Nguyễn Văn An',
-            vehiclePlate: '59-X1 234.56',
-            totalText: '2.450.000đ',
-            statusLabel: 'Đã thanh toán',
-            status: AppStatus.done,
+          InvoiceCard(
+            code: featuredInvoice.code,
+            customerName: featuredInvoice.customerName,
+            vehiclePlate: featuredInvoice.vehiclePlate,
+            totalText: featuredInvoice.totalText,
+            statusLabel: featuredInvoice.statusLabel,
+            status: _invoiceStatusToAppStatus(featuredInvoice.status),
           ),
           const SizedBox(height: 4),
           PrimaryButton(
@@ -107,5 +103,27 @@ class HomePlaceholderScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+AppStatus _invoiceStatusToAppStatus(InvoicePaymentStatus status) {
+  switch (status) {
+    case InvoicePaymentStatus.paid:
+      return AppStatus.done;
+    case InvoicePaymentStatus.unpaid:
+      return AppStatus.error;
+    case InvoicePaymentStatus.processing:
+      return AppStatus.wait;
+  }
+}
+
+AppStatus _repairStageToAppStatus(RepairStageStatus status) {
+  switch (status) {
+    case RepairStageStatus.done:
+      return AppStatus.done;
+    case RepairStageStatus.active:
+      return AppStatus.active;
+    case RepairStageStatus.waiting:
+      return AppStatus.idle;
   }
 }
