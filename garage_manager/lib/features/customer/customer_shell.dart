@@ -12,6 +12,7 @@ import '../../core/models.dart';
 import '../../core/app_routes.dart';
 import 'vehicle_list_screen.dart';
 import 'profile_screen.dart';
+import 'screens/customer_notifications_screen.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
@@ -58,6 +59,19 @@ class _CustomerShellState extends State<CustomerShell> {
         AppNavItem(icon: Icons.calendar_month_outlined, label: 'Đặt lịch'),
         AppNavItem(icon: Icons.receipt_long_outlined, label: 'Hóa đơn'),
         AppNavItem(icon: Icons.person_outline, label: 'Hồ sơ'),
+      ],
+      actions: [
+        IconButton(
+          icon: const Badge(
+            child: Icon(Icons.notifications_outlined),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CustomerNotificationsScreen()),
+            );
+          },
+        ),
       ],
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(

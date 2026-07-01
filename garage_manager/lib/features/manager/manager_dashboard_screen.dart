@@ -5,6 +5,9 @@ import '../../core/fake_data.dart';
 import '../../core/models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
+import 'screens/voucher_management_screen.dart';
+import 'screens/promo_compose_screen.dart';
+import 'screens/services_pricing_screen.dart';
 
 class ManagerDashboardScreen extends StatelessWidget {
   const ManagerDashboardScreen({super.key, required this.onOpenInvoices});
@@ -85,6 +88,42 @@ class ManagerDashboardScreen extends StatelessWidget {
           title: 'Tất cả hóa đơn',
           subtitle: 'Xem danh sách và mở chi tiết hóa đơn',
           onTap: onOpenInvoices,
+        ),
+        const SizedBox(height: 12),
+        _ShortcutCard(
+          icon: Icons.confirmation_number_outlined,
+          title: 'Quản lý Voucher (D7)',
+          subtitle: 'Tạo và cấp phát voucher cho khách hàng',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const VoucherManagementScreen()),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _ShortcutCard(
+          icon: Icons.campaign_outlined,
+          title: 'Soạn thông báo KM (D8)',
+          subtitle: 'Gửi tin khuyến mãi hàng loạt',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PromoComposeScreen()),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _ShortcutCard(
+          icon: Icons.build_circle_outlined,
+          title: 'Dịch vụ & Bảng giá (D6)',
+          subtitle: 'Cấu hình giá dịch vụ và thêm dịch vụ mới',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ServicesPricingScreen()),
+            );
+          },
         ),
       ],
     );
