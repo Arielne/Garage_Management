@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'theme/app_theme.dart';
 import 'core/app_routes.dart';
 
 void main() {
-  runApp(const GarageManagerApp());
+  runApp(
+    const ProviderScope(
+      child: GarageManagerApp(),
+    ),
+  );
 }
 
 class GarageManagerApp extends StatelessWidget {

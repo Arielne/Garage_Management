@@ -8,6 +8,7 @@ import '../features/customer/vehicle_detail_screen.dart';
 import '../features/forms/add_customer_form.dart';
 import '../features/forms/add_vehicle_form.dart';
 import '../features/manager/manager_shell.dart';
+import '../features/manager/customer_detail_screen.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -24,6 +25,7 @@ class AppRoutes {
   static const String addCustomer = '/add-customer';
   static const String addVehicle = '/add-vehicle';
   static const String vehicleDetail = '/vehicle-detail';
+  static const String customerDetail = '/manager/customer-detail';
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -67,6 +69,12 @@ class AppRoutes {
         final plate = args?['plate'] as String? ?? '';
         return MaterialPageRoute(
           builder: (_) => VehicleDetailScreen(vehiclePlate: plate),
+          settings: settings,
+        );
+      case customerDetail:
+        final phone = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => CustomerDetailScreen(customerPhone: phone),
           settings: settings,
         );
       default:
