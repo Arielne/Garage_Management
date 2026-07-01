@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'core/fake_data.dart';
-import 'core/models.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
-import 'widgets/app_card.dart';
 import 'widgets/app_scaffold.dart';
-import 'widgets/invoice_card.dart';
 import 'widgets/list_scaffold.dart';
-import 'widgets/primary_button.dart';
-import 'widgets/stage_timeline.dart';
-import 'widgets/status_chip.dart';
+import 'features/manager/screens/manager_main_screen.dart';
+import 'features/customer/screens/customer_main_screen.dart';
 
 void main() {
   runApp(const GarageManagerApp());
@@ -24,81 +20,92 @@ class GarageManagerApp extends StatelessWidget {
       title: 'Garage Manager',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const HomePlaceholderScreen(),
+      home: const RoleSelectionScreen(),
     );
   }
 }
 
-class HomePlaceholderScreen extends StatelessWidget {
-  const HomePlaceholderScreen({super.key});
+class RoleSelectionScreen extends StatelessWidget {
+  const RoleSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final featuredInvoice = demoInvoices.first;
-
     return AppScaffold(
-      title: 'Garage Manager',
-      navItems: const [
-        AppNavItem(icon: Icons.home_outlined, label: 'Tổng quan'),
-        AppNavItem(icon: Icons.receipt_long_outlined, label: 'Hóa đơn'),
-        AppNavItem(icon: Icons.person_outline, label: 'Tài khoản'),
-      ],
+      title: 'Garage Manager (Test)',
       body: ListScaffold(
         children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Khung app chung cho team',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Theme, card, chip, button, timeline và invoice card đã sẵn sàng để các nhánh khác dùng chung.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 14),
-                const Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    StatusChip(label: 'Đã xong', status: AppStatus.done),
-                    StatusChip(label: 'Đang làm', status: AppStatus.active),
-                    StatusChip(label: 'Chờ', status: AppStatus.wait),
-                  ],
-                ),
-              ],
-            ),
+          const Text(
+            'Chọn phân hệ để Test',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          AppCard(
-            child: StageTimeline(
-              stages: demoRepairStages
-                  .map(
-                    (stage) => TimelineStage(
-                      title: stage.title,
-                      description: stage.description,
-                      status: _repairStageToAppStatus(stage.status),
+          const SizedBox(height: 24),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ManagerMainScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accent),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.admin_panel_settings, color: AppColors.accent, size: 40),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Quản lý (Manager)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Xem luồng D7, D8, D6, F5'),
+                      ],
                     ),
-                  )
-                  .toList(),
+                  ),
+                  Icon(Icons.chevron_right),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
-          InvoiceCard(
-            code: featuredInvoice.code,
-            customerName: featuredInvoice.customerName,
-            vehiclePlate: featuredInvoice.vehiclePlate,
-            totalText: featuredInvoice.totalText,
-            statusLabel: featuredInvoice.statusLabel,
-            status: _invoiceStatusToAppStatus(featuredInvoice.status),
-          ),
-          const SizedBox(height: 4),
-          PrimaryButton(
-            label: 'Tạo phiếu mới',
-            icon: Icons.add,
-            onPressed: () {},
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CustomerMainScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.statusDone),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.person, color: AppColors.statusDone, size: 40),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Khách hàng (Customer)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Xem luồng B5 (Thông báo)'),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -106,24 +113,3 @@ class HomePlaceholderScreen extends StatelessWidget {
   }
 }
 
-AppStatus _invoiceStatusToAppStatus(InvoicePaymentStatus status) {
-  switch (status) {
-    case InvoicePaymentStatus.paid:
-      return AppStatus.done;
-    case InvoicePaymentStatus.unpaid:
-      return AppStatus.error;
-    case InvoicePaymentStatus.processing:
-      return AppStatus.wait;
-  }
-}
-
-AppStatus _repairStageToAppStatus(RepairStageStatus status) {
-  switch (status) {
-    case RepairStageStatus.done:
-      return AppStatus.done;
-    case RepairStageStatus.active:
-      return AppStatus.active;
-    case RepairStageStatus.waiting:
-      return AppStatus.idle;
-  }
-}
