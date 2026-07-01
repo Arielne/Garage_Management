@@ -28,7 +28,10 @@ class _CustomerShellState extends State<CustomerShell> {
     final List<Widget> pages = [
       const VehicleListScreen(),
       const _CustomerProgressTab(),
-      const _CustomerPlaceholderPage(title: 'Đặt lịch hẹn sửa chữa', icon: Icons.calendar_month_outlined),
+      const _CustomerPlaceholderPage(
+        title: 'Đặt lịch hẹn sửa chữa',
+        icon: Icons.calendar_month_outlined,
+      ),
       const _CustomerInvoicesTab(),
       const ProfileScreen(),
     ];
@@ -61,7 +64,9 @@ class _CustomerShellState extends State<CustomerShell> {
               backgroundColor: AppColors.accent,
               foregroundColor: Colors.white,
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: const Icon(Icons.add_road_outlined),
               onPressed: () {
                 // Navigate to F1 Form (Thêm xe)
@@ -100,7 +105,10 @@ class _CustomerProgressTab extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const StatusChip(label: 'Đang làm', status: AppStatus.active),
+                    const StatusChip(
+                      label: 'Đang làm',
+                      status: AppStatus.active,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -174,7 +182,9 @@ class _CustomerInvoicesTab extends StatelessWidget {
           statusLabel: invoice.statusLabel,
           status: _invoiceStatusToAppStatus(invoice.status),
           onTap: () {
-            // Detached action as the invoice detail screen is handled by Dũng
+            Navigator.of(
+              context,
+            ).pushNamed(AppRoutes.invoiceDetail, arguments: invoice);
           },
         );
       },
