@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 import 'app_card.dart';
@@ -51,17 +52,18 @@ class InvoiceCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             vehiclePlate,
-            style: const TextStyle(
+            style: GoogleFonts.robotoMono(
               fontSize: 13,
+              fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             totalText,
-            style: const TextStyle(
+            style: GoogleFonts.robotoMono(
               fontSize: 18,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.accent,
             ),
           ),
