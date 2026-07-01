@@ -23,6 +23,69 @@ class CustomerShell extends StatefulWidget {
 
 class _CustomerShellState extends State<CustomerShell> {
   int _currentIndex = 0;
+  InvoicePaymentStatus? _invoiceFilter;
+
+  void _showInvoiceFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceCard,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              ListTile(
+                title: const Text('Tất cả hóa đơn'),
+                leading: const Icon(Icons.receipt_long_outlined),
+                selected: _invoiceFilter == null,
+                onTap: () {
+                  setState(() {
+                    _invoiceFilter = null;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('Đã thanh toán'),
+                leading: const Icon(Icons.check_circle_outline),
+                selected: _invoiceFilter == InvoicePaymentStatus.paid,
+                onTap: () {
+                  setState(() {
+                    _invoiceFilter = InvoicePaymentStatus.paid;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('Đang xử lý'),
+                leading: const Icon(Icons.hourglass_empty_outlined),
+                selected: _invoiceFilter == InvoicePaymentStatus.processing,
+                onTap: () {
+                  setState(() {
+                    _invoiceFilter = InvoicePaymentStatus.processing;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('Chưa thanh toán'),
+                leading: const Icon(Icons.error_outline),
+                selected: _invoiceFilter == InvoicePaymentStatus.unpaid,
+                onTap: () {
+                  setState(() {
+                    _invoiceFilter = InvoicePaymentStatus.unpaid;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +96,7 @@ class _CustomerShellState extends State<CustomerShell> {
         title: 'Đặt lịch hẹn sửa chữa',
         icon: Icons.calendar_month_outlined,
       ),
-      const _CustomerInvoicesTab(),
+      _CustomerInvoicesTab(statusFilter: _invoiceFilter),
       const ProfileScreen(),
     ];
 
@@ -61,6 +124,12 @@ class _CustomerShellState extends State<CustomerShell> {
         AppNavItem(icon: Icons.person_outline, label: 'Hồ sơ'),
       ],
       actions: [
+        if (_currentIndex == 3)
+          IconButton(
+            tooltip: 'Lọc hóa đơn',
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showInvoiceFilterSheet,
+          ),
         IconButton(
           icon: const Badge(
             child: Icon(Icons.notifications_outlined),
@@ -179,15 +248,35 @@ class _CustomerProgressTab extends StatelessWidget {
 
 // B4: Invoices tracking tab integrating InvoiceCard
 class _CustomerInvoicesTab extends StatelessWidget {
-  const _CustomerInvoicesTab();
+  const _CustomerInvoicesTab({this.statusFilter});
+
+  final InvoicePaymentStatus? statusFilter;
 
   @override
   Widget build(BuildContext context) {
+    final invoices = demoInvoices
+        .where(
+          (invoice) => statusFilter == null || invoice.status == statusFilter,
+        )
+        .toList();
+
+    if (invoices.isEmpty) {
+      return Center(
+        child: Text(
+          'Không có hóa đơn phù hợp',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: demoInvoices.length,
+      itemCount: invoices.length,
       itemBuilder: (context, index) {
-        final invoice = demoInvoices[index];
+        final invoice = invoices[index];
         return InvoiceCard(
           code: invoice.code,
           customerName: invoice.customerName,
