@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+
+
+import 'providers/inventory_provider.dart'; 
+
 import 'core/fake_data.dart';
 import 'core/models.dart';
 import 'theme/app_theme.dart';
@@ -13,10 +17,8 @@ import 'widgets/stage_timeline.dart';
 import 'widgets/status_chip.dart';
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   
-
   await Supabase.initialize(
     url: 'YOUR_SUPABASE_URL',
     anonKey: 'YOUR_SUPABASE_ANON_KEY',
@@ -31,11 +33,19 @@ class GarageManagerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return MaterialApp(
-      title: 'Garage Manager',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const HomePlaceholderScreen(),
+    return MultiProvider(
+      providers: [
+
+        ChangeNotifierProvider(create: (_) => InventoryProvider()),
+        
+
+      ],
+      child: MaterialApp(
+        title: 'Garage Manager',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const HomePlaceholderScreen(),
+      ),
     );
   }
 }
