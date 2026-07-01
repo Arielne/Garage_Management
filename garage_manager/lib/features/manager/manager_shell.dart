@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
 import 'customer_list_screen.dart';
+import 'manager_dashboard_screen.dart';
+import 'manager_invoice_list_screen.dart';
 
 class ManagerShell extends StatefulWidget {
   const ManagerShell({super.key});
@@ -13,19 +15,55 @@ class ManagerShell extends StatefulWidget {
 }
 
 class _ManagerShellState extends State<ManagerShell> {
-  int _currentIndex = 1; // Default to Customer tab as requested
+  int _currentIndex = 0;
+  bool _showInvoiceList = false;
 
   @override
   Widget build(BuildContext context) {
+    if (_showInvoiceList) {
+      return AppScaffold(
+        title: 'Tất cả hóa đơn',
+        leading: IconButton(
+          tooltip: 'Quay lại',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            setState(() {
+              _showInvoiceList = false;
+            });
+          },
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Tải xuống',
+            icon: const Icon(Icons.download_outlined),
+            onPressed: () {},
+          ),
+        ],
+        body: const ManagerInvoiceListScreen(),
+      );
+    }
+
     final List<Widget> pages = [
-      const _ManagerPlaceholderPage(title: 'Dashboard Thống Kê', icon: Icons.dashboard_outlined),
+      ManagerDashboardScreen(
+        onOpenInvoices: () {
+          setState(() {
+            _showInvoiceList = true;
+          });
+        },
+      ),
       const CustomerListScreen(),
-      const _ManagerPlaceholderPage(title: 'Kho Phụ Tùng & Bộ Kit', icon: Icons.inventory_2_outlined),
-      const _ManagerPlaceholderPage(title: 'Tài Khoản Quản Lý', icon: Icons.person_outline),
+      const _ManagerPlaceholderPage(
+        title: 'Kho Phụ Tùng & Bộ Kit',
+        icon: Icons.inventory_2_outlined,
+      ),
+      const _ManagerPlaceholderPage(
+        title: 'Tài Khoản Quản Lý',
+        icon: Icons.person_outline,
+      ),
     ];
 
     final titles = [
-      'Dashboard',
+      'Tổng quan',
       'Quản lý Khách hàng',
       'Kho Phụ Tùng',
       'Tài khoản',
