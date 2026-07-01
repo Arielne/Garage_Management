@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
@@ -68,42 +69,42 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.accent, width: 2),
         ),
       ),
-      textTheme: const TextTheme(
-        headlineLarge: TextStyle(
+      textTheme: TextTheme(
+        headlineLarge: GoogleFonts.sora(
           fontSize: 28,
           height: 1.2,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
-        headlineMedium: TextStyle(
+        headlineMedium: GoogleFonts.sora(
           fontSize: 24,
           height: 1.25,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
-        titleLarge: TextStyle(
+        titleLarge: GoogleFonts.sora(
           fontSize: 20,
           height: 1.3,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleMedium: TextStyle(
+        titleMedium: GoogleFonts.inter(
           fontSize: 16,
           height: 1.4,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        bodyMedium: TextStyle(
+        bodyMedium: GoogleFonts.inter(
           fontSize: 15,
           height: 1.5,
           color: AppColors.textPrimary,
         ),
-        bodySmall: TextStyle(
+        bodySmall: GoogleFonts.inter(
           fontSize: 13,
           height: 1.45,
           color: AppColors.textSecondary,
         ),
-        labelLarge: TextStyle(
+        labelLarge: GoogleFonts.inter(
           fontSize: 13,
           height: 1.3,
           fontWeight: FontWeight.w600,

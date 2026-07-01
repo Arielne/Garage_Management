@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
@@ -18,7 +19,7 @@ class PlateText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(
+      style: GoogleFonts.robotoMono(
         color: color,
         fontSize: fontSize,
         fontWeight: FontWeight.w600,
