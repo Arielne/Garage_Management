@@ -1,51 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/list_scaffold.dart';
+import '../../core/app_routes.dart';
+import 'customer_provider.dart';
 
-class CustomerListScreen extends StatefulWidget {
+class CustomerListScreen extends ConsumerStatefulWidget {
   const CustomerListScreen({super.key});
 
   @override
-  State<CustomerListScreen> createState() => _CustomerListScreenState();
+  ConsumerState<CustomerListScreen> createState() => _CustomerListScreenState();
 }
 
-class _CustomerListScreenState extends State<CustomerListScreen> {
+class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Map<String, dynamic>> _allCustomers = [
-    {
-      'name': 'Nguyễn Văn An',
-      'phone': '0987654321',
-      'vehiclesCount': 2,
-      'lastVisit': 'Hôm qua',
-    },
-    {
-      'name': 'Trần Minh Khoa',
-      'phone': '0901234567',
-      'vehiclesCount': 1,
-      'lastVisit': '24/06/2026',
-    },
-    {
-      'name': 'Phạm Quốc Tuấn',
-      'phone': '0912345678',
-      'vehiclesCount': 3,
-      'lastVisit': '15/06/2026',
-    },
-    {
-      'name': 'Lê Thị Mai',
-      'phone': '0977889900',
-      'vehiclesCount': 1,
-      'lastVisit': 'Vừa mới đây',
-    },
-  ];
-  List<Map<String, dynamic>> _filteredCustomers = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filteredCustomers = _allCustomers;
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -57,18 +33,23 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredCustomers = _allCustomers.where((customer) {
-        final name = customer['name'].toString().toLowerCase();
-        final phone = customer['phone'].toString();
-        return name.contains(query) || phone.contains(query);
-      }).toList();
+      _searchQuery = _searchController.text.toLowerCase();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Read the list from Riverpod provider
+    final allCustomers = ref.watch(customerProvider);
+
+    // Filter customers based on search query
+    final filteredCustomers = allCustomers.where((customer) {
+      final name = customer.name.toLowerCase();
+      final phone = customer.phone;
+      return name.contains(_searchQuery) || phone.contains(_searchQuery);
+    }).toList();
+
     return Column(
       children: [
         // Search Header
@@ -91,7 +72,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         
         // List Content
         Expanded(
-          child: _filteredCustomers.isEmpty
+          child: filteredCustomers.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -110,18 +91,16 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 )
               : ListScaffold(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  children: _filteredCustomers.map((customer) {
+                  children: filteredCustomers.map((customer) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: AppCard(
                         child: InkWell(
                           onTap: () {
-                            // Tap on customer to simulate viewing their vehicle details/profile
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Đang hiển thị thông tin: ${customer['name']}'),
-                                duration: const Duration(seconds: 1),
-                              ),
+                            // Navigate to customer detail screen
+                            Navigator.of(context).pushNamed(
+                              AppRoutes.customerDetail,
+                              arguments: customer.phone,
                             );
                           },
                           child: Column(
@@ -131,7 +110,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    customer['name'],
+                                    customer.name,
                                     style: GoogleFonts.sora(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -145,7 +124,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      '${customer['vehiclesCount']} xe',
+                                      '${customer.vehicles.length} xe',
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -161,7 +140,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                   const Icon(Icons.phone_android_outlined, size: 14, color: AppColors.textSecondary),
                                   const SizedBox(width: 6),
                                   Text(
-                                    customer['phone'],
+                                    customer.phone,
                                     style: GoogleFonts.robotoMono(
                                       fontSize: 13,
                                       color: AppColors.textSecondary,
@@ -183,7 +162,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                     ),
                                   ),
                                   Text(
-                                    customer['lastVisit'],
+                                    customer.lastVisit,
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,

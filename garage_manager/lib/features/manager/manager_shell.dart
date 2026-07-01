@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
-import '../../core/app_routes.dart';
 import 'customer_list_screen.dart';
 
 class ManagerShell extends StatefulWidget {
@@ -46,19 +45,6 @@ class _ManagerShellState extends State<ManagerShell> {
         AppNavItem(icon: Icons.inventory_2_outlined, label: 'Kho hàng'),
         AppNavItem(icon: Icons.person_outline, label: 'Tài khoản'),
       ],
-      floatingActionButton: _currentIndex == 1
-          ? FloatingActionButton(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: const Icon(Icons.person_add_alt_1_outlined),
-              onPressed: () {
-                // Navigate to F2 Form (Thêm khách hàng)
-                Navigator.of(context).pushNamed(AppRoutes.addCustomer);
-              },
-            )
-          : null,
       body: pages[_currentIndex],
     );
   }
