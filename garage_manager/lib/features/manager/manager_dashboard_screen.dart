@@ -5,9 +5,9 @@ import '../../core/fake_data.dart';
 import '../../core/models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
-import 'screens/voucher_management_screen.dart';
-import 'screens/promo_compose_screen.dart';
-import 'screens/services_pricing_screen.dart';
+import 'voucher_management_screen.dart';
+import 'promo_compose_screen.dart';
+import 'services_pricing_screen.dart';
 
 class ManagerDashboardScreen extends StatelessWidget {
   const ManagerDashboardScreen({super.key, required this.onOpenInvoices});

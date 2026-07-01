@@ -12,7 +12,7 @@ import '../../core/models.dart';
 import '../../core/app_routes.dart';
 import 'vehicle_list_screen.dart';
 import 'profile_screen.dart';
-import 'screens/customer_notifications_screen.dart';
+import 'customer_notifications_screen.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
