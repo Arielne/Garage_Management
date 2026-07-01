@@ -18,6 +18,7 @@ class AppScaffold extends StatelessWidget {
     this.currentIndex = 0,
     this.onNavChanged,
     this.floatingActionButton,
+    this.leading,
     this.actions,
   });
 
@@ -27,16 +28,14 @@ class AppScaffold extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onNavChanged;
   final Widget? floatingActionButton;
+  final Widget? leading;
   final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
-      appBar: AppBar(
-        title: Text(title),
-        actions: actions,
-      ),
+      appBar: AppBar(title: Text(title), leading: leading, actions: actions),
       body: SafeArea(child: body),
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: navItems.isEmpty
