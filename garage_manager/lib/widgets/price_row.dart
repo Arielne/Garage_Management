@@ -9,13 +9,13 @@ class PriceRow extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const PriceRow({
-    Key? key,
+    super.key,
     required this.serviceName,
     required this.category,
     required this.price,
     this.onEdit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

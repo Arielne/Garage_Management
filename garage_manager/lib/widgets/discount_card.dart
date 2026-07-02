@@ -10,13 +10,13 @@ class DiscountCard extends StatelessWidget {
   final bool isActive;
 
   const DiscountCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.code,
     required this.description,
     required this.expiration,
     this.isActive = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
