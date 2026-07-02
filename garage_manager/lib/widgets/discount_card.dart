@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
-import '../../../widgets/app_card.dart';
+import '../theme/app_colors.dart';
+import 'app_card.dart';
 
 class DiscountCard extends StatelessWidget {
   final String title;

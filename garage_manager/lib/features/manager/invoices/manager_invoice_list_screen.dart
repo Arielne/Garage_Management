@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/app_routes.dart';
-import '../../core/fake_data.dart';
-import '../../core/models.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/invoice_card.dart';
-import '../../widgets/status_chip.dart';
+import '../../../core/app_routes.dart';
+import '../../../core/fake_data.dart';
+import '../../../core/models.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_card.dart';
+import '../../../widgets/invoice_card.dart';
+import '../../../widgets/status_chip.dart';
 
 class ManagerInvoiceListScreen extends StatelessWidget {
   const ManagerInvoiceListScreen({super.key});

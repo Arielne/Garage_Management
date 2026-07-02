@@ -3,10 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
-import 'customer_list_screen.dart';
+import 'customers/customer_list_screen.dart';
+import 'dashboard/manager_dashboard_screen.dart';
+import 'invoices/manager_invoice_list_screen.dart';
 import 'inventory/inventory_screen.dart';
-import 'manager_dashboard_screen.dart';
-import 'manager_invoice_list_screen.dart';
 
 class ManagerShell extends StatefulWidget {
   const ManagerShell({super.key});

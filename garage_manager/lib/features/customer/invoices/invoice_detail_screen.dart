@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/models.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/plate_text.dart';
-import '../../widgets/status_chip.dart';
+import '../../../core/models.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_card.dart';
+import '../../../widgets/plate_text.dart';
+import '../../../widgets/status_chip.dart';
 
 class InvoiceDetailScreen extends StatelessWidget {
   const InvoiceDetailScreen({super.key, required this.invoice});

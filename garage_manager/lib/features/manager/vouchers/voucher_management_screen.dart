@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_scaffold.dart';
-import '../../widgets/list_scaffold.dart';
-import '../../widgets/discount_card.dart';
-import '../forms/create_voucher_form.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_scaffold.dart';
+import '../../../widgets/discount_card.dart';
+import '../../../widgets/list_scaffold.dart';
+import '../../forms/create_voucher_form.dart';
 
 class VoucherManagementScreen extends StatelessWidget {
   const VoucherManagementScreen({super.key});
