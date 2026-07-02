@@ -1,25 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/fake_data.dart';
 import '../../core/models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
-import 'voucher_management_screen.dart';
+import 'customer_provider.dart';
 import 'promo_compose_screen.dart';
 import 'services_pricing_screen.dart';
+import 'voucher_management_screen.dart';
 
-class ManagerDashboardScreen extends StatelessWidget {
+class ManagerDashboardScreen extends ConsumerWidget {
   const ManagerDashboardScreen({super.key, required this.onOpenInvoices});
 
   final VoidCallback onOpenInvoices;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customers = ref.watch(customerProvider);
     final paidCount = demoInvoices
         .where((invoice) => invoice.status == InvoicePaymentStatus.paid)
         .length;
     final waitingCount = demoInvoices.length - paidCount;
+    final vehicleCount = customers.fold<int>(
+      0,
+      (total, customer) => total + customer.vehicles.length,
+    );
+    final activeVehicleCount = customers.fold<int>(
+      0,
+      (total, customer) {
+        final activeVehicles = customer.vehicles.where(
+          (vehicle) => vehicle.status == 'active',
+        );
+        return total + activeVehicles.length;
+      },
+    );
+    final lowStockCount = demoInventoryItems
+        .where((inventoryItem) => inventoryItem.isLowStock)
+        .length;
     final revenueText = _formatMoney(
       demoInvoices.fold<int>(
         0,
@@ -69,6 +88,30 @@ class ManagerDashboardScreen extends StatelessWidget {
               icon: Icons.hourglass_empty_outlined,
               label: 'Chờ xử lý',
               value: waitingCount.toString(),
+              color: AppColors.statusWait,
+            ),
+            _KpiCard(
+              icon: Icons.groups_outlined,
+              label: 'Khách hàng',
+              value: customers.length.toString(),
+              color: AppColors.accent,
+            ),
+            _KpiCard(
+              icon: Icons.two_wheeler_outlined,
+              label: 'Xe đang sửa',
+              value: '$activeVehicleCount/$vehicleCount',
+              color: AppColors.statusDone,
+            ),
+            _KpiCard(
+              icon: Icons.inventory_2_outlined,
+              label: 'Phụ tùng',
+              value: demoInventoryItems.length.toString(),
+              color: AppColors.textPrimary,
+            ),
+            _KpiCard(
+              icon: Icons.warning_amber_outlined,
+              label: 'Sắp hết hàng',
+              value: lowStockCount.toString(),
               color: AppColors.statusWait,
             ),
           ],
