@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/app_scaffold.dart';
-import '../../../widgets/form_scaffold.dart';
+import '../../widgets/app_scaffold.dart';
+import '../../widgets/form_scaffold.dart';
 
 class AddServiceScreen extends StatefulWidget {
   const AddServiceScreen({super.key});

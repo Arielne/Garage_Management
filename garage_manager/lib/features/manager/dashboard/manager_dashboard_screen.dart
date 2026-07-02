@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/fake_data.dart';
-import '../../core/models.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import 'customer_provider.dart';
-import 'manager_revenue_stats_screen.dart';
-import 'promo_compose_screen.dart';
-import 'services_pricing_screen.dart';
-import 'voucher_management_screen.dart';
+import '../../../core/fake_data.dart';
+import '../../../core/models.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_card.dart';
+import '../customers/customer_provider.dart';
+import '../promotions/promo_compose_screen.dart';
+import '../revenue/manager_revenue_stats_screen.dart';
+import '../services/services_pricing_screen.dart';
+import '../vouchers/voucher_management_screen.dart';
 
 const _monthlyRevenue = [
   _RevenuePoint(label: 'T1', value: 18500000),

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/list_scaffold.dart';
-import '../../core/app_routes.dart';
+import '../../../core/app_routes.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_card.dart';
+import '../../../widgets/list_scaffold.dart';
 import 'customer_provider.dart';
 
 class CustomerListScreen extends ConsumerStatefulWidget {
