@@ -59,3 +59,51 @@ class RepairStage {
   final String description;
   final RepairStageStatus status;
 }
+
+enum InventoryCategory { part, kit }
+
+class InventoryItem {
+  const InventoryItem({
+    required this.id,
+    required this.name,
+    required this.sku,
+    required this.category,
+    required this.stockQuantity,
+    required this.minStockWarning,
+    required this.priceText,
+    required this.compatibleVehicles,
+  });
+
+  final String id;
+  final String name;
+  final String sku;
+  final InventoryCategory category;
+  final int stockQuantity;
+  final int minStockWarning;
+  final String priceText;
+  final List<String> compatibleVehicles;
+
+  bool get isLowStock => stockQuantity <= minStockWarning;
+}
+
+enum TransactionType { import, export }
+
+class InventoryTransaction {
+  const InventoryTransaction({
+    required this.id,
+    required this.itemId,
+    required this.itemName,
+    required this.type,
+    required this.quantity,
+    required this.dateText,
+    required this.note,
+  });
+
+  final String id;
+  final String itemId;
+  final String itemName;
+  final TransactionType type;
+  final int quantity;
+  final String dateText;
+  final String note;
+}

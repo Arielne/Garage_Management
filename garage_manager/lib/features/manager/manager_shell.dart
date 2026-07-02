@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
 import 'customer_list_screen.dart';
+import 'inventory/inventory_screen.dart';
 import 'manager_dashboard_screen.dart';
 import 'manager_invoice_list_screen.dart';
 
@@ -52,10 +53,7 @@ class _ManagerShellState extends State<ManagerShell> {
         },
       ),
       const CustomerListScreen(),
-      const _ManagerPlaceholderPage(
-        title: 'Kho Phụ Tùng & Bộ Kit',
-        icon: Icons.inventory_2_outlined,
-      ),
+      const InventoryScreen(),
       const _ManagerPlaceholderPage(
         title: 'Tài Khoản Quản Lý',
         icon: Icons.person_outline,

@@ -97,3 +97,67 @@ const demoRepairStages = [
     status: RepairStageStatus.waiting,
   ),
 ];
+
+const demoInventoryItems = [
+  InventoryItem(
+    id: 'PT001',
+    name: 'Bố thắng trước Nissin',
+    sku: 'NISSIN-FRONT-01',
+    category: InventoryCategory.part,
+    stockQuantity: 45,
+    minStockWarning: 10,
+    priceText: '350.000đ',
+    compatibleVehicles: ['Exciter 150', 'Winner X', 'Sirius FI'],
+  ),
+  InventoryItem(
+    id: 'PT002',
+    name: 'Phuộc RCB C Series',
+    sku: 'RCB-CSERIES-02',
+    category: InventoryCategory.part,
+    stockQuantity: 4,
+    minStockWarning: 5,
+    priceText: '1.200.000đ',
+    compatibleVehicles: ['Exciter 150', 'Winner 150'],
+  ),
+  InventoryItem(
+    id: 'PT003',
+    name: 'Nhông sên dĩa DID',
+    sku: 'DID-CHAIN-01',
+    category: InventoryCategory.part,
+    stockQuantity: 12,
+    minStockWarning: 15,
+    priceText: '950.000đ',
+    compatibleVehicles: ['Exciter 150', 'Winner X', 'Sonic 150R', 'Raider 150'],
+  ),
+  InventoryItem(
+    id: 'KT001',
+    name: 'Bộ Kit Nâng Cấp Piston 62zz',
+    sku: 'KIT-62ZZ-EX150',
+    category: InventoryCategory.kit,
+    stockQuantity: 2,
+    minStockWarning: 3,
+    priceText: '4.500.000đ',
+    compatibleVehicles: ['Exciter 150'],
+  ),
+];
+
+const demoInventoryTransactions = [
+  InventoryTransaction(
+    id: 'TX001',
+    itemId: 'PT002',
+    itemName: 'Phuộc RCB C Series',
+    type: TransactionType.import,
+    quantity: 10,
+    dateText: '20/06/2026',
+    note: 'Nhập hàng đợt 1 tháng 6',
+  ),
+  InventoryTransaction(
+    id: 'TX002',
+    itemId: 'KT001',
+    itemName: 'Bộ Kit Nâng Cấp Piston 62zz',
+    type: TransactionType.export,
+    quantity: 1,
+    dateText: '22/06/2026',
+    note: 'Xuất dùng cho phiếu HD-2026-003',
+  ),
+];
