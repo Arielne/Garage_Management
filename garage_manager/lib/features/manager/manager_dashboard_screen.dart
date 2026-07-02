@@ -7,6 +7,7 @@ import '../../core/models.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
 import 'customer_provider.dart';
+import 'manager_revenue_stats_screen.dart';
 import 'promo_compose_screen.dart';
 import 'services_pricing_screen.dart';
 import 'voucher_management_screen.dart';
@@ -150,6 +151,20 @@ class ManagerDashboardScreen extends ConsumerWidget {
           title: 'Tất cả hóa đơn',
           subtitle: 'Xem danh sách và mở chi tiết hóa đơn',
           onTap: onOpenInvoices,
+        ),
+        const SizedBox(height: 12),
+        _ShortcutCard(
+          icon: Icons.bar_chart_outlined,
+          title: 'Thống kê doanh thu (D10)',
+          subtitle: 'Xem biểu đồ doanh thu và cơ cấu nguồn thu',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ManagerRevenueStatsScreen(),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 12),
         _ShortcutCard(
