@@ -87,13 +87,23 @@ const demoRepairStages = [
     status: RepairStageStatus.done,
   ),
   RepairStage(
-    title: 'Kiểm tra',
-    description: 'Thợ đang kiểm tra phụ tùng và báo giá.',
+    title: 'Kiểm tra & báo giá',
+    description: 'Thợ đã kiểm tra tổng quát và gửi báo giá cho khách.',
+    status: RepairStageStatus.done,
+  ),
+  RepairStage(
+    title: 'Chuẩn bị phụ tùng',
+    description: 'Garage đang xác nhận phụ tùng và bộ kit cần thay.',
+    status: RepairStageStatus.done,
+  ),
+  RepairStage(
+    title: 'Sửa chữa & nâng cấp',
+    description: 'Thợ đang thực hiện các hạng mục sửa chữa chính.',
     status: RepairStageStatus.active,
   ),
   RepairStage(
-    title: 'Hoàn tất',
-    description: 'Chờ hoàn tất sửa chữa và thanh toán.',
+    title: 'Bàn giao & thanh toán',
+    description: 'Chờ kiểm tra lần cuối, bàn giao xe và thanh toán.',
     status: RepairStageStatus.waiting,
   ),
 ];
