@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/models.dart';
-import '../../../core/fake_data.dart';
 import '../../../theme/app_colors.dart';
+import 'inventory_repository.dart';
 
-class InventoryReportDialog extends StatelessWidget {
+final inventoryTransactionsProvider = FutureProvider.autoDispose<List<InventoryTransaction>>((ref) async {
+  final repo = ref.watch(inventoryRepositoryProvider);
+  return repo.getTransactions();
+});
+
+class InventoryReportDialog extends ConsumerWidget {
   const InventoryReportDialog({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncTransactions = ref.watch(inventoryTransactionsProvider);
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 500,
-        height: 600,
+        width: 600,
+        height: 500,
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,7 +31,7 @@ class InventoryReportDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Báo Cáo Nhập / Xuất Kho',
+                  'Lịch Sử Nhập / Xuất Kho',
                   style: GoogleFonts.sora(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -38,80 +46,65 @@ class InventoryReportDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.separated(
-                itemCount: demoInventoryTransactions.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final tx = demoInventoryTransactions[index];
-                  final isImport = tx.type == TransactionType.import;
+              child: asyncTransactions.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => Center(child: Text('Lỗi: $e')),
+                data: (transactions) {
+                  if (transactions.isEmpty) {
+                    return const Center(child: Text('Chưa có giao dịch nào.'));
+                  }
+                  return ListView.separated(
+                    itemCount: transactions.length,
+                    separatorBuilder: (ctx, idx) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final tx = transactions[index];
+                      final isImport = tx.type == TransactionType.import;
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isImport ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: isImport ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                           child: Icon(
                             isImport ? Icons.arrow_downward : Icons.arrow_upward,
                             color: isImport ? Colors.green[700] : Colors.orange[700],
                             size: 20,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tx.itemName,
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Ngày: ${tx.dateText}',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: AppColors.textTertiary,
-                                ),
-                              ),
-                              if (tx.note.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  tx.note,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ],
+                        title: Text(
+                          tx.itemName,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 4),
                             Text(
-                              '${isImport ? "+" : "-"}${tx.quantity}',
+                              '${isImport ? "Nhập" : "Xuất"} ${tx.quantity} đơn vị',
                               style: GoogleFonts.inter(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
                                 color: isImport ? Colors.green[700] : Colors.orange[700],
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                            if (tx.note.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text('Ghi chú: ${tx.note}', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+                            ]
                           ],
                         ),
-                      ],
-                    ),
+                        trailing: Text(
+                          tx.dateText,
+                          style: GoogleFonts.inter(
+                            color: AppColors.textTertiary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      );
+                    },
                   );
-                },
+                }
               ),
             ),
           ],
