@@ -28,25 +28,25 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
       final input = _identifierController.text.trim().toLowerCase();
-      
+
       // Determine the role based on the input credentials
-      if (input == 'admin' || input.contains('manager') || input.endsWith('@garage.com')) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.managerShell,
-          (route) => false,
-        );
-      } else if (input.contains('tho') || input.contains('mechanic') || input.contains('thợ')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chức năng dành cho Thợ đang được phát triển.'),
-          ),
-        );
+      if (input == 'admin' ||
+          input.contains('manager') ||
+          input.endsWith('@garage.com')) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.managerShell, (route) => false);
+      } else if (input.contains('tho') ||
+          input.contains('mechanic') ||
+          input.contains('thợ')) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.technicianShell, (route) => false);
       } else {
         // Default to Customer
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.customerShell,
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.customerShell, (route) => false);
       }
     }
   }
@@ -102,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-
                 // Form Fields
                 Text(
                   'Tài khoản (Số điện thoại / Email)',
@@ -118,7 +117,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     hintText: 'Nhập số điện thoại hoặc email...',
-                    prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -143,10 +146,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: 'Nhập mật khẩu...',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: AppColors.textSecondary,
                         size: 20,
                       ),
@@ -180,17 +189,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       'Quên mật khẩu?',
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Submit Button
-                PrimaryButton(
-                  label: 'Đăng nhập',
-                  onPressed: _handleLogin,
-                ),
+                PrimaryButton(label: 'Đăng nhập', onPressed: _handleLogin),
                 const SizedBox(height: 24),
 
                 // Register Link
