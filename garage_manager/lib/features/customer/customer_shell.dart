@@ -13,6 +13,7 @@ import '../../core/app_routes.dart';
 import 'vehicle_list_screen.dart';
 import 'profile_screen.dart';
 import 'customer_notifications_screen.dart';
+import 'booking_screen.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
@@ -92,10 +93,7 @@ class _CustomerShellState extends State<CustomerShell> {
     final List<Widget> pages = [
       const VehicleListScreen(),
       const _CustomerProgressTab(),
-      const _CustomerPlaceholderPage(
-        title: 'Đặt lịch hẹn sửa chữa',
-        icon: Icons.calendar_month_outlined,
-      ),
+      const BookingScreen(),
       _CustomerInvoicesTab(statusFilter: _invoiceFilter),
       const ProfileScreen(),
     ];
@@ -131,13 +129,13 @@ class _CustomerShellState extends State<CustomerShell> {
             onPressed: _showInvoiceFilterSheet,
           ),
         IconButton(
-          icon: const Badge(
-            child: Icon(Icons.notifications_outlined),
-          ),
+          icon: const Badge(child: Icon(Icons.notifications_outlined)),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CustomerNotificationsScreen()),
+              MaterialPageRoute(
+                builder: (_) => const CustomerNotificationsScreen(),
+              ),
             );
           },
         ),
@@ -303,42 +301,5 @@ class _CustomerInvoicesTab extends StatelessWidget {
       case InvoicePaymentStatus.processing:
         return AppStatus.wait;
     }
-  }
-}
-
-class _CustomerPlaceholderPage extends StatelessWidget {
-  const _CustomerPlaceholderPage({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: GoogleFonts.sora(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tính năng đang được thiết kế.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

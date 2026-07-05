@@ -10,6 +10,8 @@ import '../features/forms/add_customer_form.dart';
 import '../features/forms/add_vehicle_form.dart';
 import '../features/manager/customers/customer_detail_screen.dart';
 import '../features/manager/manager_shell.dart';
+import '../features/technician/technician_shell.dart';
+import '../features/technician/job_detail_screen.dart';
 import 'fake_data.dart';
 import 'models.dart';
 
@@ -23,6 +25,7 @@ class AppRoutes {
   // Shells
   static const String customerShell = '/customer/shell';
   static const String managerShell = '/manager/shell';
+  static const String technicianShell = '/technician/shell';
 
   // Sub-pages/Forms
   static const String addCustomer = '/add-customer';
@@ -30,6 +33,7 @@ class AppRoutes {
   static const String vehicleDetail = '/vehicle-detail';
   static const String invoiceDetail = '/invoice-detail';
   static const String customerDetail = '/manager/customer-detail';
+  static const String jobDetail = '/technician/job-detail';
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -56,6 +60,11 @@ class AppRoutes {
       case managerShell:
         return MaterialPageRoute(
           builder: (_) => const ManagerShell(),
+          settings: settings,
+        );
+      case technicianShell:
+        return MaterialPageRoute(
+          builder: (_) => const TechnicianShell(),
           settings: settings,
         );
       case addCustomer:
@@ -87,6 +96,12 @@ class AppRoutes {
         final phone = settings.arguments as String;
         return MaterialPageRoute(
           builder: (_) => CustomerDetailScreen(customerPhone: phone),
+          settings: settings,
+        );
+      case jobDetail:
+        final invoice = settings.arguments as Invoice;
+        return MaterialPageRoute(
+          builder: (_) => JobDetailScreen(invoice: invoice),
           settings: settings,
         );
       default:
