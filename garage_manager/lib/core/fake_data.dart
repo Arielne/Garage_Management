@@ -78,6 +78,34 @@ const demoInvoices = [
       ),
     ],
   ),
+  Invoice(
+    code: 'HD-2026-003',
+    customerName: 'Lê Hoàng Hải',
+    vehiclePlate: '51-F1 999.99',
+    createdAtText: '05/07/2026',
+    subtotalText: '1.200.000đ',
+    discountAmountText: '0đ',
+    taxText: '0đ',
+    totalText: '1.200.000đ',
+    statusLabel: 'Chưa thanh toán',
+    status: InvoicePaymentStatus.unpaid,
+    lineItems: [
+      InvoiceLineItem(
+        name: 'Sửa chữa phanh xe',
+        type: InvoiceLineItemType.service,
+        quantity: 1,
+        unitPriceText: '200.000đ',
+        totalText: '200.000đ',
+      ),
+      InvoiceLineItem(
+        name: 'Thay lốp trước',
+        type: InvoiceLineItemType.part,
+        quantity: 1,
+        unitPriceText: '1.000.000đ',
+        totalText: '1.000.000đ',
+      ),
+    ],
+  ),
 ];
 
 const demoRepairStages = [

@@ -285,9 +285,11 @@ class _CustomerInvoicesTab extends StatelessWidget {
           statusLabel: invoice.statusLabel,
           status: _invoiceStatusToAppStatus(invoice.status),
           onTap: () {
-            Navigator.of(
-              context,
-            ).pushNamed(AppRoutes.invoiceDetail, arguments: invoice);
+            if (invoice.status == InvoicePaymentStatus.unpaid) {
+              Navigator.of(context).pushNamed(AppRoutes.customerPayment, arguments: invoice);
+            } else {
+              Navigator.of(context).pushNamed(AppRoutes.invoiceDetail, arguments: invoice);
+            }
           },
         );
       },

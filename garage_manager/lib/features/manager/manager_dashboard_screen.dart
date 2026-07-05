@@ -92,7 +92,7 @@ class ManagerDashboardScreen extends StatelessWidget {
         const SizedBox(height: 12),
         _ShortcutCard(
           icon: Icons.confirmation_number_outlined,
-          title: 'Quản lý Voucher (D7)',
+          title: 'Quản lý Voucher',
           subtitle: 'Tạo và cấp phát voucher cho khách hàng',
           onTap: () {
             Navigator.push(
@@ -104,7 +104,7 @@ class ManagerDashboardScreen extends StatelessWidget {
         const SizedBox(height: 12),
         _ShortcutCard(
           icon: Icons.campaign_outlined,
-          title: 'Soạn thông báo KM (D8)',
+          title: 'Soạn thông báo KM',
           subtitle: 'Gửi tin khuyến mãi hàng loạt',
           onTap: () {
             Navigator.push(
@@ -116,7 +116,7 @@ class ManagerDashboardScreen extends StatelessWidget {
         const SizedBox(height: 12),
         _ShortcutCard(
           icon: Icons.build_circle_outlined,
-          title: 'Dịch vụ & Bảng giá (D6)',
+          title: 'Dịch vụ & Bảng giá',
           subtitle: 'Cấu hình giá dịch vụ và thêm dịch vụ mới',
           onTap: () {
             Navigator.push(

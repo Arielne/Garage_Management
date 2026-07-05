@@ -5,6 +5,7 @@ import '../features/auth/register_screen.dart';
 import '../features/auth/splash_screen.dart';
 import '../features/customer/customer_shell.dart';
 import '../features/customer/invoice_detail_screen.dart';
+import '../features/customer/customer_payment_screen.dart';
 import '../features/customer/vehicle_detail_screen.dart';
 import '../features/forms/add_customer_form.dart';
 import '../features/forms/add_vehicle_form.dart';
@@ -29,6 +30,7 @@ class AppRoutes {
   static const String addVehicle = '/add-vehicle';
   static const String vehicleDetail = '/vehicle-detail';
   static const String invoiceDetail = '/invoice-detail';
+  static const String customerPayment = '/customer-payment';
   static const String customerDetail = '/manager/customer-detail';
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -81,6 +83,14 @@ class AppRoutes {
             : demoInvoices.first;
         return MaterialPageRoute(
           builder: (_) => InvoiceDetailScreen(invoice: invoice),
+          settings: settings,
+        );
+      case customerPayment:
+        final invoice = settings.arguments is Invoice
+            ? settings.arguments as Invoice
+            : demoInvoices.first;
+        return MaterialPageRoute(
+          builder: (_) => CustomerPaymentScreen(invoice: invoice),
           settings: settings,
         );
       case customerDetail:
