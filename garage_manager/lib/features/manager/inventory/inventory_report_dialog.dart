@@ -21,8 +21,8 @@ class InventoryReportDialog extends ConsumerWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 600,
-        height: 500,
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+        width: double.maxFinite,
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

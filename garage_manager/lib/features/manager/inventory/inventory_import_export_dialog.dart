@@ -81,7 +81,8 @@ class _InventoryImportExportDialogState extends ConsumerState<InventoryImportExp
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 400,
+        constraints: const BoxConstraints(maxWidth: 400),
+        width: double.maxFinite,
         padding: const EdgeInsets.all(24),
         child: asyncItems.when(
           loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
