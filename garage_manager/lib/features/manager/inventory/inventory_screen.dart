@@ -1,34 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/fake_data.dart';
 import '../../../core/models.dart';
 import '../../../theme/app_colors.dart';
 import 'inventory_import_export_dialog.dart';
 import 'inventory_report_dialog.dart';
+import 'inventory_repository.dart';
 
-class InventoryScreen extends StatefulWidget {
+// Provide the inventory items asynchronously
+final inventoryItemsProvider = FutureProvider.autoDispose<List<InventoryItem>>((ref) async {
+  final repo = ref.watch(inventoryRepositoryProvider);
+  return repo.getItems();
+});
+
+class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
   @override
-  State<InventoryScreen> createState() => _InventoryScreenState();
+  ConsumerState<InventoryScreen> createState() => _InventoryScreenState();
 }
 
-class _InventoryScreenState extends State<InventoryScreen> {
+class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   String _searchQuery = '';
   String _selectedVehicle = 'Tất cả';
 
-
-  List<String> get _vehicleList {
+  // Extract all unique vehicles for the filter based on loaded items
+  List<String> _getVehicleList(List<InventoryItem> items) {
     final Set<String> vehicles = {'Tất cả'};
-    for (var item in demoInventoryItems) {
+    for (var item in items) {
       vehicles.addAll(item.compatibleVehicles);
     }
     return vehicles.toList();
   }
 
-  List<InventoryItem> get _filteredItems {
-    return demoInventoryItems.where((item) {
+  List<InventoryItem> _getFilteredItems(List<InventoryItem> items) {
+    return items.where((item) {
       final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
                             item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesVehicle = _selectedVehicle == 'Tất cả' || item.compatibleVehicles.contains(_selectedVehicle);
@@ -36,151 +43,188 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }).toList();
   }
 
-  int get _lowStockCount {
-    return demoInventoryItems.where((item) => item.isLowStock).length;
+  int _getLowStockCount(List<InventoryItem> items) {
+    return items.where((item) => item.isLowStock).length;
   }
 
   void _showImportExportDialog(BuildContext context, [InventoryItem? item]) {
     showDialog(
       context: context,
-      builder: (ctx) => InventoryImportExportDialog(initialItem: item),
+      builder: (ctx) => InventoryImportExportDialog(
+        initialItem: item,
+        onSuccess: () {
+          // Refresh data
+          ref.invalidate(inventoryItemsProvider);
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _filteredItems;
-    final lowStockCount = _lowStockCount;
+    final asyncItems = ref.watch(inventoryItemsProvider);
 
-    return Column(
-      children: [
+    return asyncItems.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) => Center(child: Text('Đã xảy ra lỗi: $error')),
+      data: (items) {
+        final filteredItems = _getFilteredItems(items);
+        final lowStockCount = _getLowStockCount(items);
+        final vehicleList = _getVehicleList(items);
 
-        if (lowStockCount > 0)
-          Container(
-            color: Colors.red.withOpacity(0.1),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Cảnh báo: Có $lowStockCount phụ tùng/bộ kit đang sắp hết hàng!',
-                    style: GoogleFonts.inter(
-                      color: Colors.red[700],
-                      fontWeight: FontWeight.w600,
+        // Make sure selected vehicle is still in the list, otherwise reset to 'Tất cả'
+        if (!vehicleList.contains(_selectedVehicle)) {
+          _selectedVehicle = 'Tất cả';
+        }
+
+        return Column(
+          children: [
+            // Low Stock Alert
+            if (lowStockCount > 0)
+              Container(
+                color: Colors.red.withOpacity(0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Cảnh báo: Có $lowStockCount phụ tùng/bộ kit đang sắp hết hàng!',
+                        style: GoogleFonts.inter(
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-
-                  },
-                  child: Text(
-                    'Xem ngay',
-                    style: GoogleFonts.inter(color: Colors.red[700]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm phụ tùng, mã SKU...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.borderSubtle),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.borderSubtle),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _selectedVehicle,
-                      items: _vehicleList.map((v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(v, overflow: TextOverflow.ellipsis),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedVehicle = value ?? 'Tất cả';
-                        });
+                    TextButton(
+                      onPressed: () {
+                        // Logic to filter low stock only could go here
                       },
+                      child: Text(
+                        'Xem ngay',
+                        style: GoogleFonts.inter(color: Colors.red[700]),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+
+            // Search & Filter
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Tìm kiếm phụ tùng, mã SKU...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.borderSubtle),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedVehicle,
+                              items: vehicleList.map((v) => DropdownMenuItem(
+                                value: v,
+                                child: Text(v, overflow: TextOverflow.ellipsis),
+                              )).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedVehicle = value ?? 'Tất cả';
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => const InventoryReportDialog(),
+                            );
+                          },
+                          icon: const Icon(Icons.history),
+                          label: const Text('Lịch sử'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.accent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: AppColors.accent),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showImportExportDialog(context),
+                          icon: const Icon(Icons.add_box_outlined),
+                          label: const Text('Nhập / Xuất'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => const InventoryReportDialog(),
-                  );
+            ),
+
+            // List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(inventoryItemsProvider);
                 },
-                icon: const Icon(Icons.history),
-                label: const Text('Lịch sử'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  side: const BorderSide(color: AppColors.accent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: filteredItems.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = filteredItems[index];
+                    return _buildInventoryCard(item);
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => _showImportExportDialog(context),
-                icon: const Icon(Icons.add_box_outlined),
-                label: const Text('Nhập / Xuất'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: filteredItems.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = filteredItems[index];
-              return _buildInventoryCard(item);
-            },
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
