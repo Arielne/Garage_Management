@@ -24,6 +24,7 @@ class InventoryScreen extends ConsumerStatefulWidget {
 class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   String _searchQuery = '';
   String _selectedVehicle = 'Tất cả';
+  bool _showLowStockOnly = false;
 
   // Extract all unique vehicles for the filter based on loaded items
   List<String> _getVehicleList(List<InventoryItem> items) {
@@ -36,6 +37,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   List<InventoryItem> _getFilteredItems(List<InventoryItem> items) {
     return items.where((item) {
+      if (_showLowStockOnly && !item.isLowStock) return false;
       final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
                             item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesVehicle = _selectedVehicle == 'Tất cả' || item.compatibleVehicles.contains(_selectedVehicle);
@@ -99,11 +101,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // Logic to filter low stock only could go here
+                        setState(() {
+                          _showLowStockOnly = !_showLowStockOnly;
+                        });
                       },
                       child: Text(
-                        'Xem ngay',
-                        style: GoogleFonts.inter(color: Colors.red[700]),
+                        _showLowStockOnly ? 'Bỏ lọc' : 'Xem ngay',
+                        style: GoogleFonts.inter(color: Colors.red[700], fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],

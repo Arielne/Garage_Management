@@ -48,6 +48,13 @@ class _InventoryImportExportDialogState extends ConsumerState<InventoryImportExp
 
     final item = items.firstWhere((e) => e.id == _selectedItemId, orElse: () => items.first);
 
+    if (_transactionType == TransactionType.export && quantity > item.stockQuantity) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không đủ số lượng để xuất! Tồn kho hiện tại: ${item.stockQuantity}')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
