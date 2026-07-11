@@ -120,3 +120,10 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
 final invoiceListProvider = FutureProvider<List<Invoice>>((ref) {
   return ref.watch(invoiceRepositoryProvider).getInvoices();
 });
+
+/// Chi tiết 1 hóa đơn kèm hạng mục (B4.1).
+/// family: mỗi hóa đơn là 1 provider riêng; autoDispose: rời màn là giải phóng.
+final invoiceWithItemsProvider =
+    FutureProvider.autoDispose.family<Invoice, Invoice>((ref, invoice) {
+  return ref.watch(invoiceRepositoryProvider).getInvoiceWithItems(invoice);
+});
