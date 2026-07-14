@@ -202,26 +202,7 @@ class VehicleDetailScreen extends ConsumerWidget {
         ? customer.serviceHistory.where((h) => h.vehiclePlate == vehiclePlate).toList()
         : [];
 
-    if (serviceHistory.isEmpty) {
-      serviceHistory = [
-        ServiceHistoryModel(
-          date: '01/07/2026',
-          workOrder: 'WO-2026-012',
-          cost: '2.450.000đ',
-          notes: 'Lắp pô độ Akrapovic, căn chỉnh xăng gió (Dynojet).',
-          type: 'Độ & Nâng cấp',
-          vehiclePlate: vehiclePlate,
-        ),
-        ServiceHistoryModel(
-          date: '15/04/2026',
-          workOrder: 'WO-2026-001',
-          cost: '1.200.000đ',
-          notes: 'Thay lốp trước/sau Michelin City Grip 2.',
-          type: 'Bảo dưỡng định kỳ',
-          vehiclePlate: vehiclePlate,
-        ),
-      ];
-    }
+
 
     return Scaffold(
       backgroundColor: AppColors.bgApp,
