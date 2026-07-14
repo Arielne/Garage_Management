@@ -1,54 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/list_scaffold.dart';
+import '../manager/promotions/notification_repository.dart';
 
-class CustomerNotificationsScreen extends StatelessWidget {
+class CustomerNotificationsScreen extends ConsumerWidget {
   const CustomerNotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationListAsync = ref.watch(notificationListProvider);
+
     return AppScaffold(
       title: 'Thông báo',
-      body: ListScaffold(
-        children: [
-          _buildNotificationItem(
-            context,
-            icon: Icons.local_offer,
-            color: AppColors.accent,
-            title: 'Tặng bạn mã giảm 20% 🎉',
-            body: 'Cảm ơn bạn đã bảo dưỡng xe tại Garage. Dùng mã SUMMER20 để được giảm 20% phí nhân công cho lần sau nhé!',
-            time: '2 giờ trước',
-            isUnread: true,
-          ),
-          _buildNotificationItem(
-            context,
-            icon: Icons.build_circle,
-            color: AppColors.statusDone,
-            title: 'Xe của bạn đã xong',
-            body: 'Honda SH 150i (59-X1 234.56) đã hoàn tất bảo dưỡng. Vui lòng đến garage để nhận xe.',
-            time: 'Hôm qua',
-            isUnread: true,
-          ),
-          _buildNotificationItem(
-            context,
-            icon: Icons.calendar_today,
-            color: AppColors.statusWait,
-            title: 'Nhắc lịch bảo dưỡng',
-            body: 'Đã đến hạn thay nhớt định kỳ cho xe Exciter 150. Đặt lịch ngay hôm nay!',
-            time: '3 ngày trước',
-            isUnread: false,
-          ),
-          _buildNotificationItem(
-            context,
-            icon: Icons.local_offer,
-            color: AppColors.textTertiary,
-            title: 'Khuyến mãi tháng 6',
-            body: 'Giảm 10% tất cả phụ tùng chính hãng Honda. Cơ hội duy nhất trong tháng.',
-            time: '15/06/2026',
-            isUnread: false,
-          ),
-        ],
+      body: notificationListAsync.when(
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return const Center(child: Text('Chưa có thông báo nào.'));
+          }
+          return RefreshIndicator(
+            onRefresh: () async => ref.refresh(notificationListProvider),
+            child: ListScaffold(
+              children: notifications.map((notif) {
+                return _buildNotificationItem(
+                  context,
+                  icon: Icons.notifications_active,
+                  color: AppColors.accent,
+                  title: notif.title,
+                  body: notif.message,
+                  time: notif.createdAtText,
+                  isUnread: !notif.isRead,
+                );
+              }).toList(),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+        error: (err, stack) => Center(child: Text('Lỗi: $err')),
       ),
     );
   }
