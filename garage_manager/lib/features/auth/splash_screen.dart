@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_colors.dart';
 import '../../core/app_routes.dart';
@@ -30,8 +31,70 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _animationController.forward();
 
-    Timer(const Duration(seconds: 2), () {
-      if (mounted) {
+    Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      bool isInitialized = false;
+      try {
+        Supabase.instance;
+        isInitialized = true;
+      } catch (_) {}
+
+      if (isInitialized) {
+        final supabase = Supabase.instance.client;
+        final session = supabase.auth.currentSession;
+
+        if (session != null) {
+          final user = session.user;
+          try {
+            var profile = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            String role = 'customer';
+
+            if (profile == null) {
+              final fullName = user.userMetadata?['full_name'] ?? 'Khách hàng Google';
+              final email = user.email ?? '';
+
+              await supabase.from('profiles').insert({
+                'id': user.id,
+                'role': 'customer',
+                'full_name': fullName,
+                'phone': null,
+                'email': email,
+              });
+
+              await supabase.from('customers').insert({
+                'full_name': fullName,
+                'phone': null,
+                'email': email,
+                'user_id': user.id,
+              });
+            } else {
+              role = profile['role'] ?? 'customer';
+            }
+
+            if (!mounted) return;
+
+            if (role == 'manager') {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.managerShell);
+            } else if (role == 'mechanic') {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.technicianShell);
+            } else {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.customerShell);
+            }
+          } catch (e) {
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            }
+          }
+        } else {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+        }
+      } else {
         Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       }
     });
