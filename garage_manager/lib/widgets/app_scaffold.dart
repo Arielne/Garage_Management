@@ -20,6 +20,7 @@ class AppScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.leading,
     this.actions,
+    this.drawer,
   });
 
   final String title;
@@ -30,6 +31,7 @@ class AppScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final Widget? leading;
   final List<Widget>? actions;
+  final Widget? drawer;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,7 @@ class AppScaffold extends StatelessWidget {
       appBar: AppBar(title: Text(title), leading: leading, actions: actions),
       body: SafeArea(child: body),
       floatingActionButton: floatingActionButton,
+      drawer: drawer,
       bottomNavigationBar: navItems.isEmpty
           ? null
           : NavigationBar(

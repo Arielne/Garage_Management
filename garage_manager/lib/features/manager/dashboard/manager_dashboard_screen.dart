@@ -7,10 +7,7 @@ import '../../../core/models.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/app_card.dart';
 import '../customers/customer_provider.dart';
-import '../promotions/promo_compose_screen.dart';
-import '../revenue/manager_revenue_stats_screen.dart';
-import '../services/services_pricing_screen.dart';
-import '../vouchers/voucher_management_screen.dart';
+
 
 const _monthlyRevenue = [
   _RevenuePoint(label: 'T1', value: 18500000),
@@ -135,72 +132,6 @@ class ManagerDashboardScreen extends ConsumerWidget {
               (total, point) => total + point.value,
             ),
           ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Lối tắt quản lý',
-          style: GoogleFonts.sora(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.receipt_long_outlined,
-          title: 'Tất cả hóa đơn',
-          subtitle: 'Xem danh sách và mở chi tiết hóa đơn',
-          onTap: onOpenInvoices,
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.bar_chart_outlined,
-          title: 'Thống kê doanh thu (D10)',
-          subtitle: 'Xem biểu đồ doanh thu và cơ cấu nguồn thu',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ManagerRevenueStatsScreen(),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.confirmation_number_outlined,
-          title: 'Quản lý Voucher (D7)',
-          subtitle: 'Tạo và cấp phát voucher cho khách hàng',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const VoucherManagementScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.campaign_outlined,
-          title: 'Soạn thông báo KM (D8)',
-          subtitle: 'Gửi tin khuyến mãi hàng loạt',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PromoComposeScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.build_circle_outlined,
-          title: 'Dịch vụ & Bảng giá (D6)',
-          subtitle: 'Cấu hình giá dịch vụ và thêm dịch vụ mới',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ServicesPricingScreen()),
-            );
-          },
         ),
       ],
     );
@@ -351,65 +282,7 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
-class _ShortcutCard extends StatelessWidget {
-  const _ShortcutCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.accentSoft,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.textTertiary),
-        ],
-      ),
-    );
-  }
-}
 
 class _LegendDot extends StatelessWidget {
   const _LegendDot({required this.label});
