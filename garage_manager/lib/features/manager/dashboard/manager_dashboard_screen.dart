@@ -21,7 +21,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
     final invoicesAsync = ref.watch(invoiceListProvider);
     final inventoryAsync = ref.watch(inventoryItemsProvider);
     final revenueAsync = ref.watch(
-      revenueReportProvider((range: RevenueRange.month, day: null)),
+      revenueReportProvider((range: RevenueRange.month, weekStart: null, day: null)),
     );
 
     // Loading/lỗi gộp cho 3 nguồn Supabase: hóa đơn, kho phụ tùng, doanh thu.
@@ -40,7 +40,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
           ref.invalidate(invoiceListProvider);
           ref.invalidate(inventoryItemsProvider);
           ref.invalidate(
-            revenueReportProvider((range: RevenueRange.month, day: null)),
+            revenueReportProvider((range: RevenueRange.month, weekStart: null, day: null)),
           );
         },
       );
