@@ -13,7 +13,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  int _selectedRole = 0;
   final _supabase = Supabase.instance.client;
 
   @override
@@ -33,12 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
+      // 1. Thực hiện đăng nhập với Supabase
       final AuthResponse res = await _supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       if (res.user != null) {
+        // 2. Lấy thông tin role từ bảng profiles
         final userData = await _supabase
             .from('profiles')
             .select('role')
@@ -46,46 +47,38 @@ class _LoginScreenState extends State<LoginScreen> {
             .single();
         final String dbRole = userData['role'];
 
-        bool isRoleValid = false;
-        if (_selectedRole == 0 && dbRole == 'customer') isRoleValid = true;
-        if (_selectedRole == 1 && dbRole == 'mechanic') isRoleValid = true;
-        if (_selectedRole == 2 && dbRole == 'manager') isRoleValid = true;
-
         if (mounted) {
-          if (isRoleValid) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Đăng nhập thành công!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
 
-            if (_selectedRole == 0) {
-              print('Chuyển sang màn hình Khách Hàng');
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.customerShell,
-                (route) => false,
-              );
-            } else if (_selectedRole == 1) {
-              print('Chuyển sang màn hình Thợ');
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.technicianShell,
-                (route) => false,
-              );
-            } else {
-              print('Chuyển sang màn hình Quản Lý');
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.managerShell,
-                (route) => false,
-              );
-            }
+          // 3. Tự động chuyển hướng dựa trên role lấy từ Database
+          if (dbRole == 'customer') {
+            print('Chuyển sang màn hình Khách Hàng');
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.customerShell,
+              (route) => false,
+            );
+          } else if (dbRole == 'mechanic') {
+            print('Chuyển sang màn hình Thợ');
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.technicianShell,
+              (route) => false,
+            );
+          } else if (dbRole == 'manager') {
+            print('Chuyển sang màn hình Quản Lý');
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil(AppRoutes.managerShell, (route) => false);
           } else {
+            // Đề phòng trường hợp role không hợp lệ
             await _supabase.auth.signOut();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  'Tài khoản không có quyền truy cập vào vai trò này!',
-                ),
+                content: Text('Tài khoản không có quyền truy cập hợp lệ!'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -158,23 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Đăng Nhập',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      _buildRoleButton(0, 'Khách Hàng', Icons.person_outline),
-                      const SizedBox(width: 8),
-                      _buildRoleButton(1, 'Thợ Xe', Icons.handyman_outlined),
-                      const SizedBox(width: 8),
-                      _buildRoleButton(
-                        2,
-                        'Quản Lý',
-                        Icons.admin_panel_settings_outlined,
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 32),
 
-                  // Form nhập liệu
                   const Text(
                     'Email',
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -218,7 +196,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  // Quên mật khẩu
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -286,44 +263,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoleButton(int index, String title, IconData icon) {
-    bool isSelected = _selectedRole == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedRole = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFFFF4E5) : Colors.white,
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFFFF7A00)
-                  : Colors.grey.shade300,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? const Color(0xFFFF7A00) : Colors.grey,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFFFF7A00) : Colors.grey,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
