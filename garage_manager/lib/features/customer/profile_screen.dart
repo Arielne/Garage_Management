@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_colors.dart';
 import '../../core/app_routes.dart';
@@ -16,13 +17,64 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // Local state for user profile information
-  String _name = 'Nguyễn Văn An';
-  String _phone = '0987 654 321';
-  String _email = 'an.nguyen@gmail.com';
+  bool _isLoading = true;
+  String _name = '';
+  String _phone = '';
+  String _email = '';
   String _address = '123 Đường Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh';
 
   @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        final profile = await supabase
+            .from('profiles')
+            .select()
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (profile != null && mounted) {
+          setState(() {
+            _name = profile['full_name'] ?? 'Khách hàng';
+            _phone = profile['phone'] ?? '';
+            _email = profile['email'] ?? '';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading profile: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.bgApp,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+      );
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -91,6 +143,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
 
                   if (result != null) {
+                    try {
+                      final supabase = Supabase.instance.client;
+                      final user = supabase.auth.currentUser;
+                      if (user != null) {
+                        await supabase.from('profiles').update({
+                          'full_name': result['name'],
+                          'phone': result['phone'],
+                          'email': result['email'],
+                        }).eq('id', user.id);
+                        
+                        await supabase.from('customers').update({
+                          'full_name': result['name'],
+                          'phone': result['phone'],
+                          'email': result['email'],
+                        }).eq('user_id', user.id);
+                      }
+                    } catch (e) {
+                      print('Error updating profile: $e');
+                    }
                     setState(() {
                       _name = result['name'] ?? _name;
                       _phone = result['phone'] ?? _phone;
@@ -162,9 +233,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.of(context).pushNamedAndRemoveUntil(
+                          onPressed: () async {
+                            final navigator = Navigator.of(context);
+                            navigator.pop();
+                            try {
+                              await Supabase.instance.client.auth.signOut();
+                            } catch (_) {}
+                            navigator.pushNamedAndRemoveUntil(
                               AppRoutes.login,
                               (route) => false,
                             );

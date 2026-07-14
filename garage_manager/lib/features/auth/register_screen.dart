@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/primary_button.dart';
@@ -20,6 +21,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,20 +32,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      // Simulate registration success
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đăng ký tài khoản thành công!'),
-          backgroundColor: AppColors.statusDone,
-        ),
-      );
-      // Navigate to Customer Shell directly
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.customerShell,
-        (route) => false,
-      );
+      setState(() {
+        _isLoading = true;
+      });
+
+      final name = _nameController.text.trim();
+      final phone = _phoneController.text.trim();
+      final password = _passwordController.text;
+      
+      // Auto generate email format from phone for Supabase Auth
+      final email = '$phone@gmail.com';
+
+      try {
+        final supabase = Supabase.instance.client;
+
+        // 1. Sign up user in Supabase Auth
+        final AuthResponse res = await supabase.auth.signUp(
+          email: email,
+          password: password,
+        );
+
+        final user = res.user;
+        if (user == null) {
+          throw Exception('Không nhận được thông tin tài khoản từ hệ thống.');
+        }
+
+        // 2. Insert into profiles table
+        await supabase.from('profiles').insert({
+          'id': user.id,
+          'role': 'customer',
+          'full_name': name,
+          'phone': phone,
+          'email': email,
+        });
+
+        // 3. Insert into customers table
+        await supabase.from('customers').insert({
+          'full_name': name,
+          'phone': phone,
+          'email': email,
+          'user_id': user.id,
+        });
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đăng ký tài khoản thành công!'),
+            backgroundColor: AppColors.statusDone,
+          ),
+        );
+
+        // Auto-navigate to Customer Shell
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.customerShell,
+          (route) => false,
+        );
+      } catch (e) {
+        if (!mounted) return;
+
+        String errorMsg = e.toString();
+        if (errorMsg.contains('User already registered')) {
+          errorMsg = 'Số điện thoại này đã được đăng ký tài khoản trước đó!';
+        } else {
+          errorMsg = 'Đăng ký thất bại: $errorMsg';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: AppColors.statusError,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -227,8 +296,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Register Button
                 PrimaryButton(
-                  label: 'Đăng ký tài khoản',
-                  onPressed: _handleRegister,
+                  label: _isLoading ? 'Đang đăng ký...' : 'Đăng ký tài khoản',
+                  onPressed: _isLoading ? null : _handleRegister,
                 ),
                 const SizedBox(height: 24),
 
