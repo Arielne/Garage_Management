@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
+import '../theme/app_colors.dart';
 
 class PriceRow extends StatelessWidget {
   final String serviceName;
@@ -9,13 +9,13 @@ class PriceRow extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const PriceRow({
-    Key? key,
+    super.key,
     required this.serviceName,
     required this.category,
     required this.price,
     this.onEdit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

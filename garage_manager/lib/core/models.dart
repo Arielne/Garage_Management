@@ -1,51 +1,95 @@
+import 'package:intl/intl.dart';
+
 enum InvoicePaymentStatus { paid, unpaid, processing }
 
 enum InvoiceLineItemType { service, part }
 
 enum RepairStageStatus { done, active, waiting }
 
+/// Định dạng tiền kiểu Việt Nam: 2450000 -> '2.450.000đ'
+final _moneyFormat = NumberFormat('#,##0', 'vi_VN');
+String formatMoney(num value) => '${_moneyFormat.format(value)}đ';
+
+/// Map chuỗi enum của Supabase (invoice_status) sang enum Dart.
+InvoicePaymentStatus invoicePaymentStatusFromDb(String value) {
+  switch (value) {
+    case 'da_thanh_toan':
+      return InvoicePaymentStatus.paid;
+    case 'dang_xu_ly':
+      return InvoicePaymentStatus.processing;
+    default:
+      return InvoicePaymentStatus.unpaid;
+  }
+}
+
 class Invoice {
-  const Invoice({
+  Invoice({
+    this.id,
+    this.workOrderId,
     required this.code,
     required this.customerName,
     required this.vehiclePlate,
-    required this.createdAtText,
-    required this.subtotalText,
-    required this.discountAmountText,
-    required this.taxText,
-    required this.totalText,
-    required this.statusLabel,
+    required this.createdAt,
+    required this.subtotal,
+    this.discountAmount = 0,
+    this.tax = 0,
+    required this.total,
     required this.status,
-    required this.lineItems,
+    this.paymentCode,
+    this.paidAt,
+    this.lineItems = const [],
   });
 
+  final int? id;
+  final int? workOrderId;
   final String code;
   final String customerName;
   final String vehiclePlate;
-  final String createdAtText;
-  final String subtotalText;
-  final String discountAmountText;
-  final String taxText;
-  final String totalText;
-  final String statusLabel;
+  final DateTime createdAt;
+  final num subtotal;
+  final num discountAmount;
+  final num tax;
+  final num total;
   final InvoicePaymentStatus status;
+  final String? paymentCode;
+  final DateTime? paidAt;
   final List<InvoiceLineItem> lineItems;
+
+  // Getter giữ nguyên tên như model cũ — các màn/widget đang dùng không phải sửa.
+  String get createdAtText => DateFormat('dd/MM/yyyy').format(createdAt);
+  String get subtotalText => formatMoney(subtotal);
+  String get discountAmountText => formatMoney(discountAmount);
+  String get taxText => formatMoney(tax);
+  String get totalText => formatMoney(total);
+
+  String get statusLabel {
+    switch (status) {
+      case InvoicePaymentStatus.paid:
+        return 'Đã thanh toán';
+      case InvoicePaymentStatus.processing:
+        return 'Đang xử lý';
+      case InvoicePaymentStatus.unpaid:
+        return 'Chưa thanh toán';
+    }
+  }
 }
 
 class InvoiceLineItem {
   const InvoiceLineItem({
     required this.name,
     required this.type,
-    required this.quantity,
-    required this.unitPriceText,
-    required this.totalText,
+    this.quantity = 1,
+    required this.unitPrice,
   });
 
   final String name;
   final InvoiceLineItemType type;
   final int quantity;
-  final String unitPriceText;
-  final String totalText;
+  final num unitPrice;
+
+  num get total => quantity * unitPrice;
+  String get unitPriceText => formatMoney(unitPrice);
+  String get totalText => formatMoney(total);
 }
 
 class RepairStage {
@@ -58,4 +102,52 @@ class RepairStage {
   final String title;
   final String description;
   final RepairStageStatus status;
+}
+
+enum InventoryCategory { part, kit }
+
+class InventoryItem {
+  const InventoryItem({
+    required this.id,
+    required this.name,
+    required this.sku,
+    required this.category,
+    required this.stockQuantity,
+    required this.minStockWarning,
+    required this.priceText,
+    required this.compatibleVehicles,
+  });
+
+  final String id;
+  final String name;
+  final String sku;
+  final InventoryCategory category;
+  final int stockQuantity;
+  final int minStockWarning;
+  final String priceText;
+  final List<String> compatibleVehicles;
+
+  bool get isLowStock => stockQuantity <= minStockWarning;
+}
+
+enum TransactionType { import, export }
+
+class InventoryTransaction {
+  const InventoryTransaction({
+    required this.id,
+    required this.itemId,
+    required this.itemName,
+    required this.type,
+    required this.quantity,
+    required this.dateText,
+    required this.note,
+  });
+
+  final String id;
+  final String itemId;
+  final String itemName;
+  final TransactionType type;
+  final int quantity;
+  final String dateText;
+  final String note;
 }

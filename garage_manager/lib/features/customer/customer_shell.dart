@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
@@ -10,9 +11,11 @@ import '../../widgets/status_chip.dart';
 import '../../core/fake_data.dart';
 import '../../core/models.dart';
 import '../../core/app_routes.dart';
+import 'invoices/invoice_repository.dart';
 import 'vehicle_list_screen.dart';
 import 'profile_screen.dart';
 import 'customer_notifications_screen.dart';
+import 'booking_screen.dart';
 
 class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
@@ -92,10 +95,7 @@ class _CustomerShellState extends State<CustomerShell> {
     final List<Widget> pages = [
       const VehicleListScreen(),
       const _CustomerProgressTab(),
-      const _CustomerPlaceholderPage(
-        title: 'Đặt lịch hẹn sửa chữa',
-        icon: Icons.calendar_month_outlined,
-      ),
+      const BookingScreen(),
       _CustomerInvoicesTab(statusFilter: _invoiceFilter),
       const ProfileScreen(),
     ];
@@ -131,13 +131,13 @@ class _CustomerShellState extends State<CustomerShell> {
             onPressed: _showInvoiceFilterSheet,
           ),
         IconButton(
-          icon: const Badge(
-            child: Icon(Icons.notifications_outlined),
-          ),
+          icon: const Badge(child: Icon(Icons.notifications_outlined)),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CustomerNotificationsScreen()),
+              MaterialPageRoute(
+                builder: (_) => const CustomerNotificationsScreen(),
+              ),
             );
           },
         ),
@@ -247,50 +247,102 @@ class _CustomerProgressTab extends StatelessWidget {
 }
 
 // B4: Invoices tracking tab integrating InvoiceCard
-class _CustomerInvoicesTab extends StatelessWidget {
+// Dữ liệu lấy từ Supabase qua invoiceListProvider (loading/error/data).
+class _CustomerInvoicesTab extends ConsumerWidget {
   const _CustomerInvoicesTab({this.statusFilter});
 
   final InvoicePaymentStatus? statusFilter;
 
   @override
-  Widget build(BuildContext context) {
-    final invoices = demoInvoices
-        .where(
-          (invoice) => statusFilter == null || invoice.status == statusFilter,
-        )
-        .toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final invoicesAsync = ref.watch(invoiceListProvider);
 
-    if (invoices.isEmpty) {
-      return Center(
-        child: Text(
-          'Không có hóa đơn phù hợp',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: AppColors.textSecondary,
+    return invoicesAsync.when(
+      // Loading page: spinner màu accent trong lúc chờ Supabase.
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      ),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.wifi_off_outlined,
+                size: 40,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Không tải được hóa đơn.\nKiểm tra kết nối mạng rồi thử lại.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(invoiceListProvider),
+                icon: const Icon(Icons.refresh, color: AppColors.accent),
+                label: Text(
+                  'Thử lại',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    }
+      ),
+      data: (allInvoices) {
+        final invoices = allInvoices
+            .where(
+              (invoice) =>
+                  statusFilter == null || invoice.status == statusFilter,
+            )
+            .toList();
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: invoices.length,
-      itemBuilder: (context, index) {
-        final invoice = invoices[index];
-        return InvoiceCard(
-          code: invoice.code,
-          customerName: invoice.customerName,
-          vehiclePlate: invoice.vehiclePlate,
-          totalText: invoice.totalText,
-          statusLabel: invoice.statusLabel,
-          status: _invoiceStatusToAppStatus(invoice.status),
-          onTap: () {
-            if (invoice.status == InvoicePaymentStatus.unpaid) {
-              Navigator.of(context).pushNamed(AppRoutes.customerPayment, arguments: invoice);
-            } else {
-              Navigator.of(context).pushNamed(AppRoutes.invoiceDetail, arguments: invoice);
-            }
-          },
+        if (invoices.isEmpty) {
+          return Center(
+            child: Text(
+              'Không có hóa đơn phù hợp',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: AppColors.accent,
+          onRefresh: () => ref.refresh(invoiceListProvider.future),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: invoices.length,
+            itemBuilder: (context, index) {
+              final invoice = invoices[index];
+              return InvoiceCard(
+                code: invoice.code,
+                customerName: invoice.customerName,
+                vehiclePlate: invoice.vehiclePlate,
+                totalText: invoice.totalText,
+                statusLabel: invoice.statusLabel,
+                status: _invoiceStatusToAppStatus(invoice.status),
+                onTap: () {
+                  if (invoice.status == InvoicePaymentStatus.unpaid) {
+                    Navigator.of(context).pushNamed(AppRoutes.customerPayment, arguments: invoice);
+                  } else {
+                    Navigator.of(context).pushNamed(AppRoutes.invoiceDetail, arguments: invoice);
+                  }
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -305,42 +357,5 @@ class _CustomerInvoicesTab extends StatelessWidget {
       case InvoicePaymentStatus.processing:
         return AppStatus.wait;
     }
-  }
-}
-
-class _CustomerPlaceholderPage extends StatelessWidget {
-  const _CustomerPlaceholderPage({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: AppColors.textTertiary),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: GoogleFonts.sora(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tính năng đang được thiết kế.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_colors.dart';
-import '../../../widgets/app_scaffold.dart';
-import '../../../widgets/list_scaffold.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/app_scaffold.dart';
+import '../../widgets/list_scaffold.dart';
 
 class CustomerNotificationsScreen extends StatelessWidget {
   const CustomerNotificationsScreen({super.key});

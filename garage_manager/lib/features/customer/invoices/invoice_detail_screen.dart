@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/models.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_card.dart';
-import '../../widgets/plate_text.dart';
-import '../../widgets/status_chip.dart';
+import '../../../core/models.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_card.dart';
+import '../../../widgets/plate_text.dart';
+import '../../../widgets/status_chip.dart';
+import 'invoice_repository.dart';
 
-class InvoiceDetailScreen extends StatelessWidget {
+/// B4.1: Chi tiết hóa đơn.
+/// Thông tin chung + tổng tiền hiện ngay từ Invoice truyền vào;
+/// riêng danh sách hạng mục tải thêm từ Supabase (loading riêng trong thẻ).
+class InvoiceDetailScreen extends ConsumerWidget {
   const InvoiceDetailScreen({super.key, required this.invoice});
 
   final Invoice invoice;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailAsync = ref.watch(invoiceWithItemsProvider(invoice));
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       appBar: AppBar(title: const Text('Chi tiết hóa đơn')),
@@ -71,11 +77,65 @@ class InvoiceDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                for (var index = 0; index < invoice.lineItems.length; index++)
-                  _InvoiceLineItemRow(
-                    item: invoice.lineItems[index],
-                    showDivider: index < invoice.lineItems.length - 1,
+                detailAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.accent,
+                      ),
+                    ),
                   ),
+                  error: (error, stackTrace) => Column(
+                    children: [
+                      Text(
+                        'Không tải được hạng mục.\nKiểm tra kết nối mạng rồi thử lại.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () =>
+                            ref.invalidate(invoiceWithItemsProvider(invoice)),
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: AppColors.accent,
+                        ),
+                        label: Text(
+                          'Thử lại',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  data: (detail) {
+                    if (detail.lineItems.isEmpty) {
+                      return Text(
+                        'Hóa đơn chưa có hạng mục nào',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: [
+                        for (var index = 0;
+                            index < detail.lineItems.length;
+                            index++)
+                          _InvoiceLineItemRow(
+                            item: detail.lineItems[index],
+                            showDivider: index < detail.lineItems.length - 1,
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),

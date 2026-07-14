@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-import '../../widgets/app_scaffold.dart';
-import '../../widgets/list_scaffold.dart';
-import '../../widgets/price_row.dart';
-import '../forms/add_service_form.dart';
+import '../../../theme/app_colors.dart';
+import '../../../widgets/app_scaffold.dart';
+import '../../../widgets/list_scaffold.dart';
+import '../../../widgets/price_row.dart';
+import '../../forms/add_service_form.dart';
 
 class ServicesPricingScreen extends StatelessWidget {
   const ServicesPricingScreen({super.key});
