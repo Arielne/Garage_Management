@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,6 +31,15 @@ class GarageManagerApp extends StatelessWidget {
       title: 'Garage Manager',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      // Tiếng Việt cho các widget dựng sẵn của Flutter (lịch chọn ngày,
+      // nút OK/Huỷ, tên thứ/tháng...). Cũng là nền cho đa ngôn ngữ sau này.
+      locale: const Locale('vi'),
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       initialRoute: AppRoutes.splash,
       onGenerateRoute: AppRoutes.onGenerateRoute,
     );
