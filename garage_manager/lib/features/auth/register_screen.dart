@@ -203,7 +203,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Vui lòng nhập số điện thoại';
                     }
-                    final phoneRegex = RegExp(r'^(0[3|5|7|8|9])+([0-9]{8})$');
+                    final phoneRegex = RegExp(r'^(0[35789])+([0-9]{8})$');
                     if (!phoneRegex.hasMatch(value.trim())) {
                       return 'Số điện thoại không hợp lệ (ví dụ: 0987654321)';
                     }
