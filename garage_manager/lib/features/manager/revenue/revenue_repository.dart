@@ -5,48 +5,94 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Mỗi khoảng ứng với 1 view riêng trong Supabase (cùng công thức).
 enum RevenueRange { day, week, month }
 
-/// Repository doanh thu (D10, sau này D1 dùng chung) — đọc các view báo cáo:
-/// - v_revenue_by_day / v_revenue_by_week / v_revenue_by_month
-///   (chỉ tính hóa đơn da_thanh_toan)
-/// - v_revenue_by_type : cơ cấu Dịch vụ / Phụ tùng / Bộ kit
-/// Hạng mục nổi bật gộp từ work_order_services + work_order_parts
-/// của các phiếu đã thanh toán (chỉ ĐỌC bảng của Vỹ, không sửa).
+/// Tham số truy vấn D10: khoảng (ngày/tuần/tháng) HOẶC 1 ngày cụ thể do
+/// người dùng chọn từ lịch (Phương án B). Dùng làm key cho provider.family —
+/// record Dart có sẵn so sánh theo giá trị nên đổi tham số là tự tải lại.
+typedef RevenueQuery = ({RevenueRange range, DateTime? day});
+
+/// Repository doanh thu (D10) — mọi khối trên màn cùng lấy theo 1 khoảng
+/// thời gian nên số liệu nhất quán:
+/// - Biểu đồ cột: view v_revenue_by_day / week / month (chỉ chế độ khoảng).
+/// - Thẻ tổng quan: cộng từ bảng invoices trong khoảng.
+/// - Donut cơ cấu + Hạng mục nổi bật: RPC revenue_type_between /
+///   revenue_top_items_between (đọc bảng của Vỹ + Trường, không sửa).
 class RevenueRepository {
   RevenueRepository(this._client);
 
   final SupabaseClient _client;
 
-  Future<RevenueReport> getRevenueReport(RevenueRange range) async {
-    final (viewName, periodColumn, pointLimit) = switch (range) {
-      RevenueRange.day => ('v_revenue_by_day', 'day', 7),
-      RevenueRange.week => ('v_revenue_by_week', 'week', 8),
-      RevenueRange.month => ('v_revenue_by_month', 'month', 6),
-    };
+  Future<RevenueReport> getRevenueReport(RevenueQuery query) async {
+    final day = query.day;
 
-    final results = await Future.wait<List<Map<String, dynamic>>>([
-      // Lấy N kỳ gần nhất: sắp giảm dần + limit, lát nữa đảo lại cho biểu đồ.
-      _client
+    // 1. Xác định khoảng [start, end) + các cột biểu đồ.
+    final DateTime start;
+    final DateTime end;
+    List<RevenuePoint> points;
+
+    if (day != null) {
+      // Chế độ 1 ngày: cả màn chỉ tính đúng ngày đó, không vẽ nhiều cột.
+      start = DateTime(day.year, day.month, day.day);
+      end = start.add(const Duration(days: 1));
+      points = const [];
+    } else {
+      final (viewName, periodColumn, pointLimit) = switch (query.range) {
+        RevenueRange.day => ('v_revenue_by_day', 'day', 7),
+        RevenueRange.week => ('v_revenue_by_week', 'week', 8),
+        RevenueRange.month => ('v_revenue_by_month', 'month', 6),
+      };
+
+      final rows = await _client
           .from(viewName)
           .select()
           .order(periodColumn, ascending: false)
-          .limit(pointLimit),
-      _client.from('v_revenue_by_type').select(),
-    ]);
+          .limit(pointLimit);
+      final ordered = rows.reversed.toList();
 
-    final periodRows = results[0].reversed.toList();
-    final typeRows = results[1];
-    final paidWorkOrderIds = await _paidWorkOrderIds();
+      points = [
+        for (final row in ordered)
+          RevenuePoint(
+            periodStart:
+                DateTime.parse(row[periodColumn] as String).toLocal(),
+            range: query.range,
+            revenue: _toNum(row['revenue']),
+            invoiceCount: (row['invoice_count'] ?? 0) as int,
+          ),
+      ];
 
-    final points = [
-      for (final row in periodRows)
-        RevenuePoint(
-          periodStart:
-              DateTime.parse(row[periodColumn] as String).toLocal(),
-          range: range,
-          revenue: _toNum(row['revenue']),
-          invoiceCount: (row['invoice_count'] ?? 0) as int,
-        ),
-    ];
+      // Khoảng = từ đầu kỳ cũ nhất đang hiện tới hiện tại -> thẻ tổng quan,
+      // donut, hạng mục đều khớp đúng các cột trên biểu đồ.
+      start = points.isEmpty
+          ? DateTime.fromMillisecondsSinceEpoch(0)
+          : points.first.periodStart;
+      end = DateTime.now().add(const Duration(days: 1));
+    }
+
+    final startIso = start.toUtc().toIso8601String();
+    final endIso = end.toUtc().toIso8601String();
+
+    // 2. Thẻ tổng quan + phương thức thanh toán: từ invoices trong khoảng.
+    final invoiceRows = await _client
+        .from('invoices')
+        .select('total, payment_method')
+        .eq('status', 'da_thanh_toan')
+        .gte('created_at', startIso)
+        .lt('created_at', endIso);
+
+    num totalRevenue = 0;
+    for (final row in invoiceRows) {
+      totalRevenue += _toNum(row['total']);
+    }
+    final invoiceCount = invoiceRows.length;
+
+    // 3. Donut cơ cấu + Hạng mục nổi bật: 2 RPC lọc theo cùng khoảng.
+    final typeRows = await _client.rpc(
+      'revenue_type_between',
+      params: {'p_start': startIso, 'p_end': endIso},
+    ) as List;
+    final topRows = await _client.rpc(
+      'revenue_top_items_between',
+      params: {'p_start': startIso, 'p_end': endIso, 'p_limit': 3},
+    ) as List;
 
     final slices = [
       for (final row in typeRows)
@@ -55,61 +101,46 @@ class RevenueRepository {
           revenue: _toNum(row['revenue']),
         ),
     ];
-
-    final topItems = await _getTopItems(paidWorkOrderIds);
+    final topItems = [
+      for (final row in topRows)
+        TopRevenueItem(
+          name: (row['name'] ?? '') as String,
+          revenue: _toNum(row['revenue']),
+        ),
+    ];
 
     return RevenueReport(
+      day: day,
       points: points,
+      totalRevenue: totalRevenue,
+      invoiceCount: invoiceCount,
+      averageInvoice: invoiceCount == 0 ? 0 : totalRevenue / invoiceCount,
+      growthPercent: _growthPercent(points),
+      paymentSummary: _paymentSummary(invoiceRows),
       slices: slices,
       topItems: topItems,
     );
   }
 
-  /// Id các phiếu công việc đã thanh toán — doanh thu chỉ tính từ đây.
-  Future<List<int>> _paidWorkOrderIds() async {
-    final rows = await _client
-        .from('invoices')
-        .select('work_order_id')
-        .eq('status', 'da_thanh_toan');
-    return [
-      for (final row in rows)
-        if (row['work_order_id'] != null) row['work_order_id'] as int,
-    ];
+  /// % tăng trưởng kỳ gần nhất so với kỳ liền trước (chỉ chế độ khoảng);
+  /// null nếu chưa đủ 2 kỳ hoặc kỳ trước bằng 0.
+  double? _growthPercent(List<RevenuePoint> points) {
+    if (points.length < 2) return null;
+    final previous = points[points.length - 2].revenue;
+    if (previous == 0) return null;
+    final latest = points.last.revenue;
+    return (latest - previous) / previous * 100;
   }
 
-  /// Top 3 hạng mục doanh thu cao nhất (dịch vụ + phụ tùng gộp theo tên).
-  Future<List<TopRevenueItem>> _getTopItems(List<int> workOrderIds) async {
-    if (workOrderIds.isEmpty) return const [];
-
-    final results = await Future.wait([
-      _client
-          .from('work_order_services')
-          .select('name, labor_price')
-          .inFilter('work_order_id', workOrderIds),
-      _client
-          .from('work_order_parts')
-          .select('name, quantity, unit_price')
-          .inFilter('work_order_id', workOrderIds),
-    ]);
-
-    final revenueByName = <String, num>{};
-    for (final row in results[0]) {
-      final name = (row['name'] ?? '') as String;
-      revenueByName[name] =
-          (revenueByName[name] ?? 0) + _toNum(row['labor_price']);
-    }
-    for (final row in results[1]) {
-      final name = (row['name'] ?? '') as String;
-      final amount = _toNum(row['unit_price']) * ((row['quantity'] ?? 1) as int);
-      revenueByName[name] = (revenueByName[name] ?? 0) + amount;
-    }
-
-    final items = revenueByName.entries
-        .map((entry) => TopRevenueItem(name: entry.key, revenue: entry.value))
-        .toList()
-      ..sort((a, b) => b.revenue.compareTo(a.revenue));
-
-    return items.take(3).toList();
+  /// Gộp phương thức thanh toán trong ngày -> hiện ở thẻ thứ 4 (chế độ ngày).
+  String _paymentSummary(List<Map<String, dynamic>> rows) {
+    final methods = <String>{
+      for (final row in rows)
+        if (row['payment_method'] != null) row['payment_method'] as String,
+    };
+    if (methods.isEmpty) return '—';
+    if (methods.length > 1) return 'TM + CK';
+    return methods.first == 'tien_mat' ? 'Tiền mặt' : 'CK';
   }
 
   num _toNum(dynamic value) {
@@ -122,31 +153,29 @@ class RevenueRepository {
 
 class RevenueReport {
   const RevenueReport({
+    required this.day,
     required this.points,
+    required this.totalRevenue,
+    required this.invoiceCount,
+    required this.averageInvoice,
+    required this.growthPercent,
+    required this.paymentSummary,
     required this.slices,
     required this.topItems,
   });
 
+  /// Ngày cụ thể đang xem; null = đang xem theo khoảng (ngày/tuần/tháng).
+  final DateTime? day;
   final List<RevenuePoint> points;
+  final num totalRevenue;
+  final int invoiceCount;
+  final num averageInvoice;
+  final double? growthPercent;
+  final String paymentSummary;
   final List<RevenueTypeSlice> slices;
   final List<TopRevenueItem> topItems;
 
-  num get totalRevenue =>
-      points.fold<num>(0, (sum, point) => sum + point.revenue);
-
-  int get invoiceCount =>
-      points.fold<int>(0, (sum, point) => sum + point.invoiceCount);
-
-  num get averageInvoice => invoiceCount == 0 ? 0 : totalRevenue / invoiceCount;
-
-  /// % tăng trưởng tháng gần nhất so với tháng trước; null nếu chưa đủ 2 tháng.
-  double? get growthPercent {
-    if (points.length < 2) return null;
-    final previous = points[points.length - 2].revenue;
-    if (previous == 0) return null;
-    final latest = points.last.revenue;
-    return (latest - previous) / previous * 100;
-  }
+  bool get isDay => day != null;
 }
 
 class RevenuePoint {
@@ -163,11 +192,22 @@ class RevenuePoint {
   final int invoiceCount;
 
   String get label => switch (range) {
-        // Ngày: 12/7 · Tuần: lấy ngày đầu tuần 6/7 · Tháng: T7
+        // Ngày & Tuần: hiện ngày đầu kỳ dd/M · Tháng: T{số}
         RevenueRange.day => '${periodStart.day}/${periodStart.month}',
         RevenueRange.week => '${periodStart.day}/${periodStart.month}',
         RevenueRange.month => 'T${periodStart.month}',
       };
+
+  /// Nhãn đầy đủ để hiện khi người dùng chạm vào cột.
+  String get fullLabel {
+    final d = periodStart.day.toString().padLeft(2, '0');
+    final m = periodStart.month.toString().padLeft(2, '0');
+    return switch (range) {
+      RevenueRange.day => 'Ngày $d/$m/${periodStart.year}',
+      RevenueRange.week => 'Tuần từ $d/$m',
+      RevenueRange.month => 'Tháng ${periodStart.month}/${periodStart.year}',
+    };
+  }
 }
 
 class RevenueTypeSlice {
@@ -190,9 +230,9 @@ final revenueRepositoryProvider = Provider<RevenueRepository>((ref) {
   return RevenueRepository(Supabase.instance.client);
 });
 
-/// Báo cáo doanh thu theo khoảng (ngày/tuần/tháng) — family: mỗi khoảng
-/// là 1 provider riêng nên đổi tab không phải tải lại tab cũ.
+/// Báo cáo doanh thu theo tham số (khoảng hoặc 1 ngày) — family: mỗi tham số
+/// là 1 provider riêng nên đổi tab / đổi ngày không phải tải lại cái cũ.
 final revenueReportProvider =
-    FutureProvider.family<RevenueReport, RevenueRange>((ref, range) {
-  return ref.watch(revenueRepositoryProvider).getRevenueReport(range);
+    FutureProvider.family<RevenueReport, RevenueQuery>((ref, query) {
+  return ref.watch(revenueRepositoryProvider).getRevenueReport(query);
 });

@@ -9,8 +9,9 @@ import '../../../widgets/app_card.dart';
 import 'revenue_repository.dart';
 
 /// D10: Thống kê doanh thu.
-/// Dữ liệu lấy từ Supabase qua revenueReportProvider (loading/error/data):
-/// v_revenue_by_day/week/month (biểu đồ cột), v_revenue_by_type (donut cơ cấu).
+/// Dữ liệu lấy từ Supabase qua revenueReportProvider (loading/error/data).
+/// - Chế độ khoảng: 3 tab Ngày/Tuần/Tháng + biểu đồ cột.
+/// - Chế độ ngày: bấm lịch trên AppBar chọn 1 ngày -> cả màn theo ngày đó.
 class ManagerRevenueStatsScreen extends ConsumerStatefulWidget {
   const ManagerRevenueStatsScreen({super.key});
 
@@ -22,14 +23,53 @@ class ManagerRevenueStatsScreen extends ConsumerStatefulWidget {
 class _ManagerRevenueStatsScreenState
     extends ConsumerState<ManagerRevenueStatsScreen> {
   RevenueRange _selectedRange = RevenueRange.month;
+  DateTime? _selectedDay;
+
+  RevenueQuery get _query => (range: _selectedRange, day: _selectedDay);
+
+  Future<void> _pickDay() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDay ?? now,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      helpText: 'Chọn ngày xem doanh thu',
+      builder: (context, child) {
+        // Ép lịch dùng màu cam của app thay vì xanh mặc định.
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.accent,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDay = picked);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final reportAsync = ref.watch(revenueReportProvider(_selectedRange));
+    final reportAsync = ref.watch(revenueReportProvider(_query));
 
     return Scaffold(
       backgroundColor: AppColors.bgApp,
-      appBar: AppBar(title: const Text('Thống kê doanh thu')),
+      appBar: AppBar(
+        title: const Text('Thống kê doanh thu'),
+        actions: [
+          IconButton(
+            tooltip: 'Chọn ngày',
+            icon: const Icon(Icons.calendar_today_outlined),
+            onPressed: _pickDay,
+          ),
+        ],
+      ),
       body: reportAsync.when(
         // Loading page: spinner màu accent trong lúc chờ Supabase.
         loading: () => const Center(
@@ -58,7 +98,7 @@ class _ManagerRevenueStatsScreenState
                 const SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: () =>
-                      ref.invalidate(revenueReportProvider(_selectedRange)),
+                      ref.invalidate(revenueReportProvider(_query)),
                   icon: const Icon(Icons.refresh, color: AppColors.accent),
                   label: Text(
                     'Thử lại',
@@ -74,24 +114,29 @@ class _ManagerRevenueStatsScreenState
         ),
         data: (report) => RefreshIndicator(
           color: AppColors.accent,
-          onRefresh: () =>
-              ref.refresh(revenueReportProvider(_selectedRange).future),
+          onRefresh: () => ref.refresh(revenueReportProvider(_query).future),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _RangeSelector(
-                selectedRange: _selectedRange,
-                onChanged: (range) {
-                  setState(() {
-                    _selectedRange = range;
-                  });
-                },
-              ),
+              // Chế độ ngày -> chip ngày (bấm ✕ để quay lại); còn lại -> 3 tab.
+              if (report.isDay)
+                _SelectedDayChip(
+                  day: report.day!,
+                  onClear: () => setState(() => _selectedDay = null),
+                )
+              else
+                _RangeSelector(
+                  selectedRange: _selectedRange,
+                  onChanged: (range) =>
+                      setState(() => _selectedRange = range),
+                ),
               const SizedBox(height: 16),
               _SummaryGrid(report: report),
               const SizedBox(height: 16),
-              _RevenueBarChartCard(points: report.points),
-              const SizedBox(height: 16),
+              if (!report.isDay) ...[
+                _RevenueBarChartCard(points: report.points),
+                const SizedBox(height: 16),
+              ],
               _RevenueMixCard(slices: report.slices),
               const SizedBox(height: 16),
               _TopRevenueCard(items: report.topItems),
@@ -147,6 +192,53 @@ class _RangeSelector extends StatelessWidget {
   }
 }
 
+class _SelectedDayChip extends StatelessWidget {
+  const _SelectedDayChip({required this.day, required this.onClear});
+
+  final DateTime day;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onClear,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 7, 10, 7),
+          decoration: BoxDecoration(
+            color: AppColors.accentSoft,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.accent, width: 1.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 15,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                _fullDayLabel(day),
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: 7),
+              const Icon(Icons.close, size: 15, color: AppColors.accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SummaryGrid extends StatelessWidget {
   const _SummaryGrid({required this.report});
 
@@ -162,18 +254,19 @@ class _SummaryGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      // 1.65 làm thẻ thấp hơn nội dung ~3px trên một số máy -> tràn đáy.
       childAspectRatio: 1.5,
       children: [
         _SummaryCard(
           icon: Icons.payments_outlined,
-          label: 'Tổng doanh thu',
+          label: report.isDay
+              ? 'Doanh thu ${report.day!.day}/${report.day!.month}'
+              : 'Tổng doanh thu',
           value: _formatMoney(report.totalRevenue),
           color: AppColors.accent,
         ),
         _SummaryCard(
           icon: Icons.receipt_long_outlined,
-          label: 'Số hóa đơn',
+          label: report.isDay ? 'Hóa đơn trong ngày' : 'Số hóa đơn',
           value: report.invoiceCount.toString(),
           color: AppColors.textPrimary,
         ),
@@ -183,15 +276,24 @@ class _SummaryGrid extends StatelessWidget {
           value: _formatMoney(report.averageInvoice),
           color: AppColors.statusDone,
         ),
-        _SummaryCard(
-          icon: Icons.trending_up_outlined,
-          label: 'Tăng trưởng',
-          value: growth == null
-              ? '—'
-              : '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(0)}%',
-          color:
-              (growth ?? 0) >= 0 ? AppColors.statusDone : AppColors.statusError,
-        ),
+        // Chế độ ngày: thẻ 4 là phương thức thanh toán; khoảng: là tăng trưởng.
+        report.isDay
+            ? _SummaryCard(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Phương thức',
+                value: report.paymentSummary,
+                color: AppColors.statusDone,
+              )
+            : _SummaryCard(
+                icon: Icons.trending_up_outlined,
+                label: 'Tăng trưởng',
+                value: growth == null
+                    ? '—'
+                    : '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(0)}%',
+                color: (growth ?? 0) >= 0
+                    ? AppColors.statusDone
+                    : AppColors.statusError,
+              ),
       ],
     );
   }
@@ -248,29 +350,57 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _RevenueBarChartCard extends StatelessWidget {
+/// Biểu đồ cột doanh thu — chạm vào cột để xem số cụ thể của kỳ đó.
+class _RevenueBarChartCard extends StatefulWidget {
   const _RevenueBarChartCard({required this.points});
 
   final List<RevenuePoint> points;
 
   @override
+  State<_RevenueBarChartCard> createState() => _RevenueBarChartCardState();
+}
+
+class _RevenueBarChartCardState extends State<_RevenueBarChartCard> {
+  int? _selectedIndex;
+
+  @override
+  void didUpdateWidget(_RevenueBarChartCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Đổi tab/ngày -> bỏ chọn cột cũ để mặc định lại về cột cuối.
+    if (oldWidget.points != widget.points) {
+      _selectedIndex = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final maxValue = points.fold<num>(
-      0,
-      (max, point) => point.revenue > max ? point.revenue : max,
-    );
+    final points = widget.points;
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Doanh thu theo thời gian',
-            style: GoogleFonts.sora(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Doanh thu theo thời gian',
+                  style: GoogleFonts.sora(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                'Chạm cột để xem số',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           if (points.isEmpty)
@@ -282,27 +412,30 @@ class _RevenueBarChartCard extends StatelessWidget {
               ),
             )
           else ...[
+            _SelectedBarInfo(point: points[_selectedIndex ?? points.length - 1]),
+            const SizedBox(height: 10),
             SizedBox(
               height: 150,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _BarChartPainter(
-                  points: points,
-                  maxValue: maxValue == 0 ? 1 : maxValue,
-                ),
+              child: _InteractiveBars(
+                points: points,
+                selectedIndex: _selectedIndex ?? points.length - 1,
+                onTap: (index) => setState(() => _selectedIndex = index),
               ),
             ),
             const SizedBox(height: 8),
+            // Mỗi nhãn nằm giữa 1 ô bằng nhau -> thẳng hàng với tâm cột.
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final point in points)
-                  Text(
-                    point.label,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
+                  Expanded(
+                    child: Text(
+                      point.label,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
               ],
@@ -310,6 +443,99 @@ class _RevenueBarChartCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Dòng hiện chi tiết cột đang chọn: tên kỳ + doanh thu + số hóa đơn.
+class _SelectedBarInfo extends StatelessWidget {
+  const _SelectedBarInfo({required this.point});
+
+  final RevenuePoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.accentSoft,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              point.fullLabel,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            '${_formatMoney(point.revenue)} · ${point.invoiceCount} HĐ',
+            style: GoogleFonts.robotoMono(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InteractiveBars extends StatelessWidget {
+  const _InteractiveBars({
+    required this.points,
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final List<RevenuePoint> points;
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = points.fold<num>(
+      0,
+      (max, point) => point.revenue > max ? point.revenue : max,
+    );
+    final safeMax = maxValue == 0 ? 1 : maxValue;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var index = 0; index < points.length; index++)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onTap(index),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  heightFactor:
+                      (points[index].revenue / safeMax).clamp(0.0, 1.0),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: index == selectedIndex
+                          ? AppColors.accent
+                          : AppColors.accentSoft,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -519,54 +745,6 @@ class _TopRevenueRow extends StatelessWidget {
   }
 }
 
-class _BarChartPainter extends CustomPainter {
-  const _BarChartPainter({required this.points, required this.maxValue});
-
-  final List<RevenuePoint> points;
-  final num maxValue;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = AppColors.divider
-      ..strokeWidth = 1;
-    final mutedPaint = Paint()..color = AppColors.accentSoft;
-    final activePaint = Paint()..color = AppColors.accent;
-
-    for (var index = 0; index <= 4; index++) {
-      final y = size.height * index / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    if (points.isEmpty) {
-      return;
-    }
-
-    final slotWidth = size.width / points.length;
-    final barWidth = slotWidth * 0.44;
-    for (var index = 0; index < points.length; index++) {
-      final point = points[index];
-      final normalized = point.revenue / maxValue;
-      final barHeight = size.height * normalized.clamp(0.0, 1.0);
-      final left = index * slotWidth + (slotWidth - barWidth) / 2;
-      final top = size.height - barHeight;
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(left, top, barWidth, barHeight),
-        const Radius.circular(8),
-      );
-      canvas.drawRRect(
-        rect,
-        index == points.length - 1 ? activePaint : mutedPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
-    return oldDelegate.points != points || oldDelegate.maxValue != maxValue;
-  }
-}
-
 class _DonutChartPainter extends CustomPainter {
   const _DonutChartPainter({required this.slices, required this.total});
 
@@ -620,6 +798,22 @@ Color _sliceColor(String label) {
     default:
       return AppColors.textSecondary;
   }
+}
+
+const _weekdays = {
+  1: 'Thứ 2',
+  2: 'Thứ 3',
+  3: 'Thứ 4',
+  4: 'Thứ 5',
+  5: 'Thứ 6',
+  6: 'Thứ 7',
+  7: 'Chủ nhật',
+};
+
+String _fullDayLabel(DateTime day) {
+  final dd = day.day.toString().padLeft(2, '0');
+  final mm = day.month.toString().padLeft(2, '0');
+  return '${_weekdays[day.weekday]}, $dd/$mm/${day.year}';
 }
 
 String _formatMoney(num value) {
