@@ -343,8 +343,8 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-// B4: Invoices tracking tab integrating InvoiceCard
-// Dữ liệu lấy từ Supabase qua invoiceListProvider (loading/error/data).
+// B4: "Hóa đơn của tôi" — chỉ hóa đơn của khách đang đăng nhập.
+// Dữ liệu lấy từ Supabase qua myInvoiceListProvider (loading/error/data).
 class _CustomerInvoicesTab extends ConsumerWidget {
   const _CustomerInvoicesTab({this.statusFilter});
 
@@ -352,7 +352,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final invoicesAsync = ref.watch(invoiceListProvider);
+    final invoicesAsync = ref.watch(myInvoiceListProvider);
 
     return invoicesAsync.when(
       // Loading page: spinner màu accent trong lúc chờ Supabase.
@@ -381,7 +381,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               TextButton.icon(
-                onPressed: () => ref.invalidate(invoiceListProvider),
+                onPressed: () => ref.invalidate(myInvoiceListProvider),
                 icon: const Icon(Icons.refresh, color: AppColors.accent),
                 label: Text(
                   'Thử lại',
@@ -417,7 +417,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
 
         return RefreshIndicator(
           color: AppColors.accent,
-          onRefresh: () => ref.refresh(invoiceListProvider.future),
+          onRefresh: () => ref.refresh(myInvoiceListProvider.future),
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: invoices.length,
