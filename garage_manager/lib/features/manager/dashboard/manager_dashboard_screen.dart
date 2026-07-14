@@ -50,10 +50,25 @@ class ManagerDashboardScreen extends ConsumerWidget {
     final inventory = inventoryAsync.value!;
     final revenue = revenueAsync.value!;
 
-    final paidCount = invoices
+    // 4 thẻ tiền/hóa đơn tính theo THÁNG HIỆN TẠI (giờ VN của máy) cho cùng
+    // một mốc; biểu đồ bên dưới vẫn giữ 6 tháng để xem xu hướng.
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    final nextMonth = DateTime(now.year, now.month + 1);
+    final monthInvoices = invoices.where((invoice) {
+      final createdAt = invoice.createdAt;
+      return !createdAt.isBefore(monthStart) && createdAt.isBefore(nextMonth);
+    }).toList();
+    final invoiceCount = monthInvoices.length;
+    final paidCount = monthInvoices
         .where((invoice) => invoice.status == InvoicePaymentStatus.paid)
         .length;
-    final waitingCount = invoices.length - paidCount;
+    final waitingCount = invoiceCount - paidCount;
+    final monthRevenue = monthInvoices
+        .where((invoice) => invoice.status == InvoicePaymentStatus.paid)
+        .fold<num>(0, (sum, invoice) => sum + invoice.total);
+    final revenueText = _formatMoney(monthRevenue.round());
+
     final vehicleCount = customers.fold<int>(
       0,
       (total, customer) => total + customer.vehicles.length,
@@ -69,7 +84,6 @@ class ManagerDashboardScreen extends ConsumerWidget {
     );
     final lowStockCount =
         inventory.where((item) => item.isLowStock).length;
-    final revenueText = _formatMoney(revenue.totalRevenue.round());
     final revenuePoints = [
       for (final point in revenue.points)
         _RevenuePoint(label: point.label, value: point.revenue.round()),
@@ -79,7 +93,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'Tổng quan hôm nay',
+          'Tổng quan',
           style: GoogleFonts.sora(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -104,7 +118,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
             _KpiCard(
               icon: Icons.receipt_long_outlined,
               label: 'Hóa đơn',
-              value: invoices.length.toString(),
+              value: invoiceCount.toString(),
               color: AppColors.textPrimary,
             ),
             _KpiCard(

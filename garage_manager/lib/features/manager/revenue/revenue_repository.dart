@@ -94,18 +94,34 @@ class RevenueRepository {
       params: {'p_start': startIso, 'p_end': endIso, 'p_limit': 3},
     ) as List;
 
-    final slices = [
+    // RPC trả doanh thu hạng mục TRƯỚC thuế/giảm giá. Ta giữ đúng TỈ LỆ
+    // giữa Dịch vụ/Phụ tùng/Bộ kit nhưng nhân lại cho khớp Tổng doanh thu
+    // (đã gồm thuế 8%, đã trừ giảm giá) -> donut cộng ra đúng bằng thẻ tổng.
+    final rawSlices = [
       for (final row in typeRows)
         RevenueTypeSlice(
           label: (row['type'] ?? '') as String,
           revenue: _toNum(row['revenue']),
         ),
     ];
+    final rawSum = rawSlices.fold<num>(0, (sum, s) => sum + s.revenue);
+    final slices = (rawSum > 0 && totalRevenue > 0)
+        ? [
+            for (final s in rawSlices)
+              RevenueTypeSlice(
+                label: s.label,
+                revenue: s.revenue / rawSum * totalRevenue,
+              ),
+          ]
+        : rawSlices;
+
+    // Hạng mục nổi bật cũng scale theo cùng hệ số cho đồng bộ với donut.
+    final scale = (rawSum > 0 && totalRevenue > 0) ? totalRevenue / rawSum : 1;
     final topItems = [
       for (final row in topRows)
         TopRevenueItem(
           name: (row['name'] ?? '') as String,
-          revenue: _toNum(row['revenue']),
+          revenue: _toNum(row['revenue']) * scale,
         ),
     ];
 
