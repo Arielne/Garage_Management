@@ -16,6 +16,21 @@ class VehicleDetailScreen extends ConsumerWidget {
   final String vehiclePlate;
 
   Invoice _mapHistoryToInvoice(ServiceHistoryModel history, String customerName, String vehiclePlate) {
+    num parseCurrency(String val) {
+      final digits = val.replaceAll(RegExp(r'[^0-9]'), '');
+      return num.tryParse(digits) ?? 0;
+    }
+
+    DateTime parseDate(String val) {
+      try {
+        final parts = val.split('/');
+        if (parts.length == 3) {
+          return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        }
+      } catch (_) {}
+      return DateTime.now();
+    }
+
     List<InvoiceLineItem> items = [];
     String subtotal = history.cost;
     String discount = '0đ';
@@ -23,112 +38,99 @@ class VehicleDetailScreen extends ConsumerWidget {
 
     if (history.workOrder == 'WO-2026-012') {
       items = [
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Pô Akrapovic Carbon chính hãng',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '2.000.000đ',
-          totalText: '2.000.000đ',
+          unitPrice: parseCurrency('2.000.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Công căn chỉnh xăng gió (Dynojet)',
           type: InvoiceLineItemType.service,
           quantity: 1,
-          unitPriceText: '450.000đ',
-          totalText: '450.000đ',
+          unitPrice: parseCurrency('450.000đ'),
         ),
       ];
       subtotal = '2.450.000đ';
     } else if (history.workOrder == 'WO-2026-001') {
       items = [
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Lốp Michelin City Grip 2 (Trước & Sau)',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '1.000.000đ',
-          totalText: '1.000.000đ',
+          unitPrice: parseCurrency('1.000.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Công thay vỏ & cân mâm',
           type: InvoiceLineItemType.service,
           quantity: 1,
-          unitPriceText: '200.000đ',
-          totalText: '200.000đ',
+          unitPrice: parseCurrency('200.000đ'),
         ),
       ];
       subtotal = '1.200.000đ';
     } else if (history.workOrder == 'WO-2026-004') {
       items = [
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Nhớt Motul 300V 10W40 1L',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '450.000đ',
-          totalText: '450.000đ',
+          unitPrice: parseCurrency('450.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Lọc gió K&N Vario/Click',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '250.000đ',
-          totalText: '250.000đ',
+          unitPrice: parseCurrency('250.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Công vệ sinh nồi & kiểm tra truyền động',
           type: InvoiceLineItemType.service,
           quantity: 1,
-          unitPriceText: '150.000đ',
-          totalText: '150.000đ',
+          unitPrice: parseCurrency('150.000đ'),
         ),
       ];
       subtotal = '850.000đ';
     } else if (history.workOrder == 'WO-2026-009') {
       items = [
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Bộ nhông sên dĩa DID vàng Raider/Satria',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '1.200.000đ',
-          totalText: '1.200.000đ',
+          unitPrice: parseCurrency('1.200.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Má phanh Nissin trước & sau',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '400.000đ',
-          totalText: '400.000đ',
+          unitPrice: parseCurrency('400.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Công lắp ráp & căn chỉnh sên',
           type: InvoiceLineItemType.service,
           quantity: 1,
-          unitPriceText: '200.000đ',
-          totalText: '200.000đ',
+          unitPrice: parseCurrency('200.000đ'),
         ),
       ];
       subtotal = '1.800.000đ';
     } else if (history.workOrder == 'WO-2026-011') {
       items = [
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Nhớt Wolver Special 10W40 0.8L',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '180.000đ',
-          totalText: '180.000đ',
+          unitPrice: parseCurrency('180.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Nhớt hộp số (láp) Liqui Moly Racing',
           type: InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: '90.000đ',
-          totalText: '90.000đ',
+          unitPrice: parseCurrency('90.000đ'),
         ),
-        const InvoiceLineItem(
+        InvoiceLineItem(
           name: 'Công thay nhớt nhanh',
           type: InvoiceLineItemType.service,
           quantity: 1,
-          unitPriceText: '50.000đ',
-          totalText: '50.000đ',
+          unitPrice: parseCurrency('50.000đ'),
         ),
       ];
       subtotal = '320.000đ';
@@ -140,8 +142,7 @@ class VehicleDetailScreen extends ConsumerWidget {
               ? InvoiceLineItemType.service 
               : InvoiceLineItemType.part,
           quantity: 1,
-          unitPriceText: history.cost,
-          totalText: history.cost,
+          unitPrice: parseCurrency(history.cost),
         ),
       ];
       subtotal = history.cost;
@@ -151,12 +152,11 @@ class VehicleDetailScreen extends ConsumerWidget {
       code: history.workOrder,
       customerName: customerName,
       vehiclePlate: vehiclePlate,
-      createdAtText: history.date,
-      subtotalText: subtotal,
-      discountAmountText: discount,
-      taxText: tax,
-      totalText: history.cost,
-      statusLabel: 'Đã thanh toán',
+      createdAt: parseDate(history.date),
+      subtotal: parseCurrency(subtotal),
+      discountAmount: parseCurrency(discount),
+      tax: parseCurrency(tax),
+      total: parseCurrency(history.cost),
       status: InvoicePaymentStatus.paid,
       lineItems: items,
     );
