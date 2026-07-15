@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/form_scaffold.dart';
 import '../manager/customers/customer_provider.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../core/utils/image_upload_helper.dart';
 
@@ -26,7 +26,8 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
   final _ccController = TextEditingController();
   final _odoController = TextEditingController();
 
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
   bool _isUploading = false;
 
   @override
@@ -56,8 +57,10 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
                   Navigator.pop(context);
                   final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
                   if (file != null) {
+                    final bytes = await file.readAsBytes();
                     setState(() {
                       _selectedImage = file;
+                      _selectedImageBytes = bytes;
                     });
                   }
                 },
@@ -69,8 +72,10 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
                   Navigator.pop(context);
                   final file = await ImageUploadHelper.pickImage(ImageSource.camera);
                   if (file != null) {
+                    final bytes = await file.readAsBytes();
                     setState(() {
                       _selectedImage = file;
+                      _selectedImageBytes = bytes;
                     });
                   }
                 },
@@ -91,6 +96,20 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
       String? imageUrl;
       if (_selectedImage != null) {
         imageUrl = await ImageUploadHelper.uploadVehicleImage(_selectedImage!);
+        if (imageUrl == null) {
+          if (mounted) {
+            setState(() {
+              _isUploading = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Lỗi tải ảnh lên Supabase Storage! Vui lòng kiểm tra lại cấu hình bucket.'),
+                backgroundColor: AppColors.statusError,
+              ),
+            );
+          }
+          return;
+        }
       }
 
       final brandInput = _brandController.text.trim();
@@ -169,8 +188,8 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
                       CircleAvatar(
                         radius: 54,
                         backgroundColor: AppColors.borderSubtle,
-                        backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
-                        child: _selectedImage == null
+                        backgroundImage: _selectedImageBytes != null ? MemoryImage(_selectedImageBytes!) : null,
+                        child: _selectedImageBytes == null
                             ? const Icon(
                                 Icons.add_a_photo_outlined,
                                 size: 36,
@@ -178,7 +197,7 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
                               )
                             : null,
                       ),
-                      if (_selectedImage != null)
+                      if (_selectedImageBytes != null)
                         Positioned(
                           right: 0,
                           bottom: 0,

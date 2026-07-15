@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,7 +6,7 @@ class ImageUploadHelper {
   static final ImagePicker _picker = ImagePicker();
 
   /// Picks an image from the specified source (camera or gallery)
-  static Future<File?> pickImage(ImageSource source) async {
+  static Future<XFile?> pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
@@ -15,26 +14,40 @@ class ImageUploadHelper {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      if (pickedFile != null) {
-        return File(pickedFile.path);
-      }
+      return pickedFile;
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
     return null;
   }
 
-  /// Uploads a local image file to Supabase storage bucket `vehicle_images`
+  /// Uploads an XFile (works on both Web and Mobile) to Supabase Storage
   /// and returns its public direct URL.
-  static Future<String?> uploadVehicleImage(File file) async {
+  static Future<String?> uploadVehicleImage(XFile xFile) async {
     try {
       final supabase = Supabase.instance.client;
-      final fileExtension = file.path.split('.').last;
+      final fileExtension = xFile.path.split('.').last;
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${refUniqueString()}.$fileExtension';
       
+      final Uint8List bytes = await xFile.readAsBytes();
+      
+      // Determine content type based on extension
+      String contentType = 'image/jpeg';
+      if (fileExtension.toLowerCase() == 'png') {
+        contentType = 'image/png';
+      } else if (fileExtension.toLowerCase() == 'webp') {
+        contentType = 'image/webp';
+      } else if (fileExtension.toLowerCase() == 'gif') {
+        contentType = 'image/gif';
+      }
+
       final String path = await supabase.storage
           .from('vehicle_images')
-          .upload('uploads/$fileName', file);
+          .uploadBinary(
+            'uploads/$fileName', 
+            bytes,
+            fileOptions: FileOptions(contentType: contentType),
+          );
 
       if (path.isNotEmpty) {
         final String publicUrl = supabase.storage

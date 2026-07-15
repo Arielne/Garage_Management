@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../core/utils/image_upload_helper.dart';
 import '../../core/app_routes.dart';
@@ -409,7 +409,8 @@ class VehicleDetailScreen extends ConsumerWidget {
     final ccController = TextEditingController(text: vehicle.engineCc?.toString() ?? '');
     final odoController = TextEditingController(text: vehicle.odometer?.toString() ?? '');
 
-    File? selectedImage;
+    XFile? selectedImage;
+    Uint8List? selectedImageBytes;
     bool isUploading = false;
 
     showDialog(
@@ -449,8 +450,10 @@ class VehicleDetailScreen extends ConsumerWidget {
                                           Navigator.pop(context);
                                           final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
                                           if (file != null) {
+                                            final bytes = await file.readAsBytes();
                                             setState(() {
                                               selectedImage = file;
+                                              selectedImageBytes = bytes;
                                             });
                                           }
                                         },
@@ -462,8 +465,10 @@ class VehicleDetailScreen extends ConsumerWidget {
                                           Navigator.pop(context);
                                           final file = await ImageUploadHelper.pickImage(ImageSource.camera);
                                           if (file != null) {
+                                            final bytes = await file.readAsBytes();
                                             setState(() {
                                               selectedImage = file;
+                                              selectedImageBytes = bytes;
                                             });
                                           }
                                         },
@@ -479,12 +484,12 @@ class VehicleDetailScreen extends ConsumerWidget {
                               CircleAvatar(
                                 radius: 40,
                                 backgroundColor: AppColors.borderSubtle,
-                                backgroundImage: selectedImage != null 
-                                    ? FileImage(selectedImage!) 
+                                backgroundImage: selectedImageBytes != null 
+                                    ? MemoryImage(selectedImageBytes!) 
                                     : (vehicle.imageUrl != null && vehicle.imageUrl!.isNotEmpty
                                         ? NetworkImage(vehicle.imageUrl!) as ImageProvider
                                         : null),
-                                child: selectedImage == null && (vehicle.imageUrl == null || vehicle.imageUrl!.isEmpty)
+                                child: selectedImageBytes == null && (vehicle.imageUrl == null || vehicle.imageUrl!.isEmpty)
                                     ? const Icon(
                                         Icons.add_a_photo_outlined,
                                         size: 24,
@@ -579,6 +584,18 @@ class VehicleDetailScreen extends ConsumerWidget {
                         String? newImageUrl = vehicle.imageUrl;
                         if (selectedImage != null) {
                           newImageUrl = await ImageUploadHelper.uploadVehicleImage(selectedImage!);
+                          if (newImageUrl == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Lỗi tải ảnh lên Supabase Storage! Vui lòng kiểm tra lại cấu hình bucket.'),
+                                backgroundColor: AppColors.statusError,
+                              ),
+                            );
+                            setState(() {
+                              isUploading = false;
+                            });
+                            return;
+                          }
                         }
 
                         final supabase = Supabase.instance.client;
