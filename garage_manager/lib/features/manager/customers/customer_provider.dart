@@ -68,6 +68,7 @@ class ServiceHistoryModel {
 }
 
 class CustomerDetailModel {
+  final int? id;
   final String name;
   final String phone;
   final String email;
@@ -78,6 +79,7 @@ class CustomerDetailModel {
   final String? userId;
 
   CustomerDetailModel({
+    this.id,
     required this.name,
     required this.phone,
     required this.email,
@@ -89,6 +91,7 @@ class CustomerDetailModel {
   });
 
   CustomerDetailModel copyWith({
+    int? id,
     String? name,
     String? phone,
     String? email,
@@ -99,6 +102,7 @@ class CustomerDetailModel {
     String? userId,
   }) {
     return CustomerDetailModel(
+      id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
@@ -215,6 +219,7 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
 
         loaded.add(
           CustomerDetailModel(
+            id: c['id'] as int?,
             name: c['full_name'] ?? 'Không tên',
             phone: c['phone'] ?? '',
             email: c['email'] ?? '',

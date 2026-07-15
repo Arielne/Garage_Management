@@ -12,14 +12,10 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey, 
+    anonKey: SupabaseConfig.anonKey,
   );
 
-  runApp(
-    const ProviderScope(
-      child: GarageManagerApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: GarageManagerApp()));
 }
 
 class GarageManagerApp extends StatelessWidget {
@@ -31,8 +27,6 @@ class GarageManagerApp extends StatelessWidget {
       title: 'Garage Manager',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      // Tiếng Việt cho các widget dựng sẵn của Flutter (lịch chọn ngày,
-      // nút OK/Huỷ, tên thứ/tháng...). Cũng là nền cho đa ngôn ngữ sau này.
       locale: const Locale('vi'),
       supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [

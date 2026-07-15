@@ -8,6 +8,8 @@ class DiscountCard extends StatelessWidget {
   final String description;
   final String expiration;
   final bool isActive;
+  final VoidCallback? onDelete;
+  final VoidCallback? onReactivate;
 
   const DiscountCard({
     super.key,
@@ -16,6 +18,8 @@ class DiscountCard extends StatelessWidget {
     required this.description,
     required this.expiration,
     this.isActive = true,
+    this.onDelete,
+    this.onReactivate,
   });
 
   @override
@@ -42,11 +46,36 @@ class DiscountCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: isActive ? AppColors.textPrimary : AppColors.textTertiary,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: isActive ? AppColors.textPrimary : AppColors.textTertiary,
+                            ),
                       ),
+                    ),
+                    if (isActive && onDelete != null)
+                      InkWell(
+                        onTap: onDelete,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.delete_outline, color: AppColors.statusError, size: 20),
+                        ),
+                      ),
+                    if (!isActive && onReactivate != null)
+                      InkWell(
+                        onTap: onReactivate,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.restore, color: AppColors.statusDone, size: 20),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

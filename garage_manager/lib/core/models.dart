@@ -151,3 +151,94 @@ class InventoryTransaction {
   final String dateText;
   final String note;
 }
+
+class ServiceModel {
+  const ServiceModel({
+    required this.id,
+    required this.name,
+    required this.laborPrice,
+  });
+
+  final int id;
+  final String name;
+  final num laborPrice;
+
+  String get laborPriceText => formatMoney(laborPrice);
+
+  factory ServiceModel.fromJson(Map<String, dynamic> json) {
+    return ServiceModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      laborPrice: json['labor_price'] as num,
+    );
+  }
+}
+
+enum VoucherType { percent, amount }
+
+class VoucherModel {
+  const VoucherModel({
+    required this.id,
+    required this.code,
+    required this.type,
+    required this.value,
+    required this.minOrder,
+    this.expiryDate,
+    required this.active,
+  });
+
+  final int id;
+  final String code;
+  final VoucherType type;
+  final num value;
+  final num minOrder;
+  final DateTime? expiryDate;
+  final bool active;
+
+  String get valueText => type == VoucherType.percent ? '$value%' : formatMoney(value);
+  String get minOrderText => formatMoney(minOrder);
+  String get expiryDateText => expiryDate != null ? DateFormat('dd/MM/yyyy').format(expiryDate!) : 'Không giới hạn';
+
+  factory VoucherModel.fromJson(Map<String, dynamic> json) {
+    return VoucherModel(
+      id: json['id'] as int,
+      code: json['code'] as String,
+      type: json['type'] == 'percent' ? VoucherType.percent : VoucherType.amount,
+      value: json['value'] as num,
+      minOrder: json['min_order'] as num,
+      expiryDate: json['expiry_date'] != null ? DateTime.parse(json['expiry_date'] as String).toLocal() : null,
+      active: json['active'] as bool,
+    );
+  }
+}
+
+class AppNotification {
+  const AppNotification({
+    required this.id,
+    this.customerId,
+    required this.title,
+    required this.message,
+    required this.createdAt,
+    required this.isRead,
+  });
+
+  final String id;
+  final String? customerId;
+  final String title;
+  final String message;
+  final DateTime createdAt;
+  final bool isRead;
+
+  String get createdAtText => DateFormat('dd/MM/yyyy HH:mm').format(createdAt);
+
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
+    return AppNotification(
+      id: json['id'].toString(),
+      customerId: json['customer_id']?.toString(),
+      title: json['title'] as String,
+      message: json['message'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      isRead: json['is_read'] as bool? ?? false,
+    );
+  }
+}

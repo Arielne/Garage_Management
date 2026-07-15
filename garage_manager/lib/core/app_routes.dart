@@ -5,15 +5,22 @@ import '../features/auth/register_screen.dart';
 import '../features/auth/splash_screen.dart';
 import '../features/customer/customer_shell.dart';
 import '../features/customer/invoices/invoice_detail_screen.dart';
+import '../features/customer/customer_payment_screen.dart';
 import '../features/customer/vehicle_detail_screen.dart';
 import '../features/forms/add_customer_form.dart';
 import '../features/forms/add_vehicle_form.dart';
 import '../features/manager/customers/customer_detail_screen.dart';
 import '../features/manager/manager_shell.dart';
+import '../features/manager/jobs/appointment_management_screen.dart';
 import '../features/technician/technician_shell.dart';
 import '../features/technician/job_detail_screen.dart';
+import '../features/technician/notification_screen.dart';
+import '../features/technician/technician_personal_info_screen.dart';
+import '../features/manager/jobs/assign_job_screen.dart';
 import 'fake_data.dart';
+
 import 'models.dart';
+import 'fake_data.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -32,9 +39,14 @@ class AppRoutes {
   static const String addVehicle = '/add-vehicle';
   static const String vehicleDetail = '/vehicle-detail';
   static const String invoiceDetail = '/invoice-detail';
+  static const String customerPayment = '/customer-payment';
   static const String customerDetail = '/manager/customer-detail';
   static const String jobDetail = '/technician/job-detail';
-
+  static const String notificationJobs = '/technician/notification';
+  static const String technicianPersonalInfo = '/technician/personal-info';
+  static const String assignJob = '/manager/jobs/assign';
+  static const String appointmentManagement =
+      '/manager/jobs/appointment-management';
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
@@ -67,6 +79,11 @@ class AppRoutes {
           builder: (_) => const TechnicianShell(),
           settings: settings,
         );
+      case appointmentManagement:
+        return MaterialPageRoute(
+          builder: (_) => const AppointmentManagementScreen(),
+          settings: settings,
+        );
       case addCustomer:
         return MaterialPageRoute(
           builder: (_) => const AddCustomerForm(),
@@ -85,11 +102,25 @@ class AppRoutes {
           settings: settings,
         );
       case invoiceDetail:
+        if (settings.arguments is! Invoice) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Không tìm thấy hóa đơn.')),
+            ),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) =>
+              InvoiceDetailScreen(invoice: settings.arguments as Invoice),
+          settings: settings,
+        );
+      case customerPayment:
         final invoice = settings.arguments is Invoice
             ? settings.arguments as Invoice
             : demoInvoices.first;
         return MaterialPageRoute(
-          builder: (_) => InvoiceDetailScreen(invoice: invoice),
+          builder: (_) => CustomerPaymentScreen(invoice: invoice),
           settings: settings,
         );
       case customerDetail:
@@ -99,9 +130,26 @@ class AppRoutes {
           settings: settings,
         );
       case jobDetail:
-        final invoice = settings.arguments as Invoice;
+        final jobData = settings.arguments as Map<String, dynamic>;
+
         return MaterialPageRoute(
-          builder: (_) => JobDetailScreen(invoice: invoice),
+          builder: (_) => JobDetailScreen(jobData: jobData),
+          settings: settings,
+        );
+      case notificationJobs:
+        return MaterialPageRoute(
+          builder: (_) => const NotificationScreen(),
+          settings: settings,
+        );
+      case assignJob:
+        final apt = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => AssignJobScreen(appointment: apt),
+          settings: settings,
+        );
+      case technicianPersonalInfo:
+        return MaterialPageRoute(
+          builder: (_) => const TechnicianPersonalInfoScreen(),
           settings: settings,
         );
       default:
