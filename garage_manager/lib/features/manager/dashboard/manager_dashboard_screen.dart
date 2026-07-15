@@ -421,7 +421,7 @@ class _RevenueBarChartPainter extends CustomPainter {
       ..color = AppColors.divider
       ..strokeWidth = 1;
     final barPaint = Paint()..color = AppColors.accent;
-    final mutedBarPaint = Paint()..color = AppColors.accentSoft;
+    final mutedBarPaint = Paint()..color = AppColors.accentMuted;
 
     const gridCount = 4;
     for (var index = 0; index <= gridCount; index++) {
