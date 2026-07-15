@@ -12,6 +12,10 @@ class AppColors {
   static const accentPress = Color(0xFFE66A0E);
   static const accentSoft = Color(0xFFFFF1E6);
 
+  /// Cột phụ trong biểu đồ. `accentSoft` là màu NỀN cho chip/badge — tô cột
+  /// bằng nó thì gần như trắng trên nền thẻ (#FFFFFF) nên không nhìn thấy.
+  static const accentMuted = Color(0xFFFFC398);
+
   static const textPrimary = Color(0xFF1E1E1E);
   static const textSecondary = Color(0xFF6B7178);
   static const textTertiary = Color(0xFF9AA0A6);

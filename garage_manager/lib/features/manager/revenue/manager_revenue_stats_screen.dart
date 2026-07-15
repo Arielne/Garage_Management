@@ -617,7 +617,7 @@ class _InteractiveBars extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: index == selectedIndex
                           ? AppColors.accent
-                          : AppColors.accentSoft,
+                          : AppColors.accentMuted,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(8),
                       ),
