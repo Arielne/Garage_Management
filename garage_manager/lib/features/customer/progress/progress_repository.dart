@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/models.dart';
+import '../invoices/invoice_repository.dart' show authUserIdProvider;
 
 /// 5 công đoạn cố định của một phiếu sửa xe (khớp enum `work_stage` trong DB).
 /// Thứ tự này quyết định giai đoạn nào đã xong / đang làm / chờ.
@@ -149,6 +150,9 @@ final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
 });
 
 /// Tiến độ các xe đang sửa của khách đang đăng nhập (B2).
+/// Watch [authUserIdProvider] để đổi tài khoản là nạp lại, không dùng lại
+/// cache của khách trước.
 final myProgressProvider = FutureProvider<List<VehicleProgress>>((ref) {
+  ref.watch(authUserIdProvider);
   return ref.watch(progressRepositoryProvider).getMyActiveProgress();
 });
