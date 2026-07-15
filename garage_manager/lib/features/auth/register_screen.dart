@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -40,10 +42,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final name = _nameController.text.trim();
       final phone = _phoneController.text.trim();
+      final email = _emailController.text.trim().toLowerCase();
       final password = _passwordController.text;
-      
-      // Auto generate email format from phone for Supabase Auth
-      final email = '$phone@gmail.com';
 
       try {
         final supabase = Supabase.instance.client;
@@ -94,8 +94,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (!mounted) return;
 
         String errorMsg = e.toString();
-        if (errorMsg.contains('User already registered')) {
-          errorMsg = 'Số điện thoại này đã được đăng ký tài khoản trước đó!';
+        if (errorMsg.contains('User already registered') || errorMsg.contains('already exists')) {
+          errorMsg = 'Email hoặc Số điện thoại này đã được đăng ký tài khoản trước đó!';
         } else {
           errorMsg = 'Đăng ký thất bại: $errorMsg';
         }
@@ -206,6 +206,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     final phoneRegex = RegExp(r'^(0[35789])+([0-9]{8})$');
                     if (!phoneRegex.hasMatch(value.trim())) {
                       return 'Số điện thoại không hợp lệ (ví dụ: 0987654321)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // Email
+                Text(
+                  'Email',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'Nhập email...',
+                    prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary, size: 20),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Vui lòng nhập email';
+                    }
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(value.trim())) {
+                      return 'Email không hợp lệ (ví dụ: name@example.com)';
                     }
                     return null;
                   },
