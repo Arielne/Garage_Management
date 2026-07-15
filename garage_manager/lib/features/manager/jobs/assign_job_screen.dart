@@ -22,9 +22,11 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
 
   List<Map<String, dynamic>> _mechanics = [];
   List<Map<String, dynamic>> _services = [];
+  List<Map<String, dynamic>> _parts = [];
 
   int? _selectedMechanicId;
   List<Map<String, dynamic>> _selectedServices = [];
+  List<Map<String, dynamic>> _selectedParts = [];
 
   @override
   void initState() {
@@ -40,11 +42,16 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
       final servicesData = await _supabase
           .from('services')
           .select('id, name, labor_price');
+      final partsData = await _supabase
+          .from('parts')
+          .select('id, name, price, stock_qty')
+          .gt('stock_qty', 0); // Chỉ lấy phụ tùng còn hàng
 
       if (mounted) {
         setState(() {
           _mechanics = List<Map<String, dynamic>>.from(mechanicsData);
           _services = List<Map<String, dynamic>>.from(servicesData);
+          _parts = List<Map<String, dynamic>>.from(partsData);
           _isLoading = false;
         });
       }
@@ -60,7 +67,6 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
       final appointment = widget.appointment;
       final serviceNames = _selectedServices.map((s) => s['name']).join(', ');
 
-      // 1. Tạo phiếu với trạng thái ban đầu là 'cho_nhan'
       final insertedWorkOrder = await _supabase
           .from('work_orders')
           .insert({
@@ -74,11 +80,13 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
           .select()
           .single();
 
+      final workOrderId = insertedWorkOrder['id'];
+
       // 2. Lưu danh sách dịch vụ đã chọn vào bảng work_order_services
       final servicesToInsert = _selectedServices
           .map(
             (service) => {
-              'work_order_id': insertedWorkOrder['id'],
+              'work_order_id': workOrderId,
               'service_id': service['id'],
               'name': service['name'],
               'labor_price': service['labor_price'],
@@ -87,11 +95,36 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
           .toList();
       await _supabase.from('work_order_services').insert(servicesToInsert);
 
-      // 3. Tạo các công đoạn (checklist) cho thợ
+      // 3. Lưu danh sách phụ tùng (Linh kiện) và Trừ tồn kho
+      if (_selectedParts.isNotEmpty) {
+        final partsToInsert = _selectedParts
+            .map(
+              (part) => {
+                'work_order_id': workOrderId,
+                'part_id': part['id'],
+                'name': part['name'],
+                'quantity': 1, // Tạm thời mặc định mỗi loại 1 cái
+                'unit_price': part['price'],
+              },
+            )
+            .toList();
+
+        await _supabase.from('work_order_parts').insert(partsToInsert);
+
+        // Trừ kho cho từng món
+        for (var part in _selectedParts) {
+          await _supabase
+              .from('parts')
+              .update({'stock_qty': part['stock_qty'] - 1})
+              .eq('id', part['id']);
+        }
+      }
+
+      // 4. Tạo các công đoạn (checklist) cho thợ
       final stagesToInsert = _selectedServices
           .map(
             (service) => {
-              'work_order_id': insertedWorkOrder['id'],
+              'work_order_id': workOrderId,
               'stage': 'Thực hiện: ${service['name']}',
               'done': false,
             },
@@ -100,7 +133,7 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
 
       await _supabase.from('work_order_stages').insert(stagesToInsert);
 
-      // 4. Xóa lịch hẹn (vì đã chuyển thành phiếu công việc)
+      // 5. Xóa lịch hẹn (vì đã chuyển thành phiếu công việc)
       await _supabase.from('appointments').delete().eq('id', appointment['id']);
 
       if (mounted) {
@@ -332,6 +365,100 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
                       }).toList(),
                       onChanged: (val) =>
                           setState(() => _selectedMechanicId = val),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // 3. Parts Selection
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.settings_suggest_outlined,
+                        color: AppColors.accent,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '3. CHỌN PHỤ TÙNG TỪ KHO',
+                        style: GoogleFonts.sora(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        if (_parts.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Text(
+                              'Kho hiện đang hết phụ tùng.',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: _parts.length,
+                            separatorBuilder: (_, __) => const Divider(
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                            ),
+                            itemBuilder: (context, index) {
+                              final part = _parts[index];
+                              final isSelected = _selectedParts.any(
+                                (p) => p['id'] == part['id'],
+                              );
+                              return CheckboxListTile(
+                                title: Text(
+                                  part['name'],
+                                  style: GoogleFonts.inter(
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.textPrimary
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Giá: ${NumberFormat('#,###').format(part['price'])}đ • Tồn: ${part['stock_qty']}',
+                                  style: GoogleFonts.robotoMono(
+                                    fontSize: 12,
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                                value: isSelected,
+                                activeColor: AppColors.accent,
+                                checkboxShape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                onChanged: (checked) {
+                                  setState(() {
+                                    if (checked == true) {
+                                      _selectedParts.add(part);
+                                    } else {
+                                      _selectedParts.removeWhere(
+                                        (p) => p['id'] == part['id'],
+                                      );
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                      ],
                     ),
                   ),
 
