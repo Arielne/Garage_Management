@@ -25,6 +25,10 @@ class VoucherRepository {
   Future<void> deleteVoucher(int id) async {
     await _client.from('vouchers').update({'active': false}).eq('id', id);
   }
+
+  Future<void> reactivateVoucher(int id) async {
+    await _client.from('vouchers').update({'active': true}).eq('id', id);
+  }
 }
 
 final voucherRepositoryProvider = Provider<VoucherRepository>((ref) {

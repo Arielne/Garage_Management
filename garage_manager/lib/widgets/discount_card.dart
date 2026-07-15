@@ -9,6 +9,7 @@ class DiscountCard extends StatelessWidget {
   final String expiration;
   final bool isActive;
   final VoidCallback? onDelete;
+  final VoidCallback? onReactivate;
 
   const DiscountCard({
     super.key,
@@ -18,6 +19,7 @@ class DiscountCard extends StatelessWidget {
     required this.expiration,
     this.isActive = true,
     this.onDelete,
+    this.onReactivate,
   });
 
   @override
@@ -55,13 +57,22 @@ class DiscountCard extends StatelessWidget {
                             ),
                       ),
                     ),
-                    if (onDelete != null)
+                    if (isActive && onDelete != null)
                       InkWell(
                         onTap: onDelete,
                         borderRadius: BorderRadius.circular(20),
                         child: const Padding(
                           padding: EdgeInsets.all(4.0),
                           child: Icon(Icons.delete_outline, color: AppColors.statusError, size: 20),
+                        ),
+                      ),
+                    if (!isActive && onReactivate != null)
+                      InkWell(
+                        onTap: onReactivate,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.restore, color: AppColors.statusDone, size: 20),
                         ),
                       ),
                   ],

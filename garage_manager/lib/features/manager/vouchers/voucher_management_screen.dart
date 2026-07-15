@@ -49,8 +49,8 @@ class VoucherManagementScreen extends ConsumerWidget {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: const Text('Xác nhận xóa'),
-                          content: Text('Bạn có chắc muốn xóa mã ${voucher.code}?'),
+                          title: const Text('Xác nhận vô hiệu hóa'),
+                          content: Text('Bạn có chắc muốn vô hiệu hóa mã ${voucher.code}?'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
@@ -58,7 +58,7 @@ class VoucherManagementScreen extends ConsumerWidget {
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Xóa', style: TextStyle(color: AppColors.statusError)),
+                              child: const Text('Vô hiệu hóa', style: TextStyle(color: AppColors.statusError)),
                             ),
                           ],
                         ),
@@ -70,7 +70,7 @@ class VoucherManagementScreen extends ConsumerWidget {
                           ref.invalidate(voucherListProvider);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Đã xóa voucher')),
+                              const SnackBar(content: Text('Đã vô hiệu hóa voucher')),
                             );
                           }
                         } catch (e) {
@@ -79,6 +79,23 @@ class VoucherManagementScreen extends ConsumerWidget {
                               SnackBar(content: Text('Lỗi: $e')),
                             );
                           }
+                        }
+                      }
+                    },
+                    onReactivate: () async {
+                      try {
+                        await ref.read(voucherRepositoryProvider).reactivateVoucher(voucher.id);
+                        ref.invalidate(voucherListProvider);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã khôi phục voucher')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Lỗi: $e')),
+                          );
                         }
                       }
                     },
