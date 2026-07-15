@@ -147,18 +147,8 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
       }
       
       // Update invoice
-      if (widget.invoice.workOrderId != null) {
-        int totalParts = 0;
-        int totalLabor = 0;
-        for (final item in widget.invoice.lineItems) {
-          final value = _parseMoney(item.totalText);
-          if (item.type == InvoiceLineItemType.part) {
-            totalParts += value;
-          } else if (item.type == InvoiceLineItemType.service) {
-            totalLabor += value;
-          }
-        }
-        final int subtotal = totalParts + totalLabor;
+      if (widget.invoice.id != null) {
+        final int subtotal = widget.invoice.subtotal.toInt();
         final int tax = (subtotal * 0.08).round();
         int finalTotal = subtotal + tax - _discountAmount;
         if (finalTotal < 0) finalTotal = 0;
@@ -168,12 +158,13 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
           'discount_amount': _discountAmount,
           'total': finalTotal,
           'payment_method': _paymentMethod,
+          'paid_at': DateTime.now().toUtc().toIso8601String(),
         };
         if (_appliedVoucher != null) {
           updateData['voucher_id'] = _appliedVoucher!.id;
         }
 
-        await supabase.from('invoices').update(updateData).eq('work_order_id', widget.invoice.workOrderId!);
+        await supabase.from('invoices').update(updateData).eq('id', widget.invoice.id!);
       }
       
       if (mounted) {
@@ -207,7 +198,8 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
 
     const accountNumber = '0396733726';
     const bankName = 'MBBank';
-    final qrUrl = 'https://qr.sepay.vn/img?acc=$accountNumber&bank=$bankName&amount=$finalTotal&des=${Uri.encodeComponent(widget.invoice.code)}';
+    final String des = widget.invoice.paymentCode ?? widget.invoice.code;
+    final qrUrl = 'https://qr.sepay.vn/img?acc=$accountNumber&bank=$bankName&amount=$finalTotal&des=${Uri.encodeComponent(des)}';
 
     return Scaffold(
       backgroundColor: AppColors.bgApp,
