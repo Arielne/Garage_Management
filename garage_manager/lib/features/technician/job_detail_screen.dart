@@ -66,11 +66,50 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           .toList();
 
       if (remainingStages.isEmpty) {
+        final workOrderId = widget.jobData['id'];
+
         // Nếu đã xong hết các công đoạn, tự động cập nhật status của work_order thành 'hoan_thanh'
         await _supabase
             .from('work_orders')
             .update({'status': 'hoan_thanh'})
-            .eq('id', widget.jobData['id']);
+            .eq('id', workOrderId);
+
+        // Lấy danh sách dịch vụ và phụ tùng để tính tổng tiền
+        final services = await _supabase
+            .from('work_order_services')
+            .select('labor_price')
+            .eq('work_order_id', workOrderId);
+
+        final parts = await _supabase
+            .from('work_order_parts')
+            .select('quantity, unit_price')
+            .eq('work_order_id', workOrderId);
+
+        num totalLabor = 0;
+        for (final s in services) {
+          totalLabor += (s['labor_price'] ?? 0) as num;
+        }
+
+        num totalParts = 0;
+        for (final p in parts) {
+          final qty = (p['quantity'] ?? 1) as num;
+          final price = (p['unit_price'] ?? 0) as num;
+          totalParts += (qty * price);
+        }
+
+        final num subtotal = totalLabor + totalParts;
+        final num tax = (subtotal * 0.08).round();
+        final num total = subtotal + tax;
+
+        // Tự động tạo hóa đơn
+        await _supabase.from('invoices').insert({
+          'work_order_id': workOrderId,
+          'subtotal': subtotal,
+          'tax': tax,
+          'discount_amount': 0,
+          'total': total,
+          'status': 'chua_thanh_toan', // Trạng thái chưa thanh toán
+        });
       }
 
       // Tải lại danh sách sau khi cập nhật
