@@ -101,15 +101,29 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         final num tax = (subtotal * 0.08).round();
         final num total = subtotal + tax;
 
-        // Tự động tạo hóa đơn
-        await _supabase.from('invoices').insert({
-          'work_order_id': workOrderId,
-          'subtotal': subtotal,
-          'tax': tax,
-          'discount_amount': 0,
-          'total': total,
-          'status': 'chua_thanh_toan', // Trạng thái chưa thanh toán
-        });
+        // Chặn trùng: một phiếu chỉ một hóa đơn
+        final existing = await _supabase
+            .from('invoices')
+            .select('id')
+            .eq('work_order_id', workOrderId)
+            .maybeSingle();
+
+        if (existing == null) {
+          final inserted = await _supabase.from('invoices').insert({
+            'work_order_id': workOrderId,
+            'subtotal': subtotal,
+            'tax': tax,
+            'discount_amount': 0,
+            'total': total,
+            'status': 'chua_thanh_toan',
+          }).select('id').single();
+
+          // payment_code cho SePay đối soát
+          await _supabase
+              .from('invoices')
+              .update({'payment_code': 'GARAHD${inserted['id']}'})
+              .eq('id', inserted['id']);
+        }
       }
 
       // Tải lại danh sách sau khi cập nhật
