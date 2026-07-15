@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../../widgets/form_scaffold.dart';
+import '../customers/customer_provider.dart';
 import '../vouchers/voucher_repository.dart';
 import 'notification_repository.dart';
 
@@ -14,7 +15,7 @@ class PromoComposeScreen extends ConsumerStatefulWidget {
 
 class _PromoComposeScreenState extends ConsumerState<PromoComposeScreen> {
   final _formKey = GlobalKey<FormState>();
-  final String _sendTo = 'all';
+  String _sendTo = 'all'; // 'all' or specific customer user_id
   String _title = '';
   String _message = '';
   String _selectedVoucher = 'none';
@@ -30,7 +31,14 @@ class _PromoComposeScreenState extends ConsumerState<PromoComposeScreen> {
         if (_selectedVoucher != 'none') {
           finalMessage += '\n\nMã Voucher: $_selectedVoucher';
         }
-        await ref.read(notificationRepositoryProvider).sendPromoNotification(_title, finalMessage);
+        
+        final customerId = _sendTo == 'all' ? null : _sendTo;
+        
+        await ref.read(notificationRepositoryProvider).sendPromoNotification(
+              _title,
+              finalMessage,
+              customerId: customerId,
+            );
         if (mounted) Navigator.pop(context);
       } catch (e) {
         if (mounted) {
@@ -47,6 +55,7 @@ class _PromoComposeScreenState extends ConsumerState<PromoComposeScreen> {
   @override
   Widget build(BuildContext context) {
     final voucherListAsync = ref.watch(voucherListProvider);
+    final customers = ref.watch(customerProvider);
 
     return AppScaffold(
       title: 'Soạn thông báo KM',
@@ -115,21 +124,25 @@ class _PromoComposeScreenState extends ConsumerState<PromoComposeScreen> {
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  RadioListTile<String>(
-                    title: const Text('Tất cả khách hàng'),
-                    value: 'all',
-                    groupValue: _sendTo,
-                    onChanged: null, // Disabled because it's the only option
-                  ),
-                ],
-              ),
+            DropdownButtonFormField<String>(
+              value: _sendTo,
+              isExpanded: true,
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('Tất cả khách hàng')),
+                ...customers
+                    .where((c) => c.id != null)
+                    .map((c) => DropdownMenuItem(
+                          value: c.id.toString(),
+                          child: Text('${c.name} (${c.email.isNotEmpty ? c.email : c.phone})'),
+                        )),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _sendTo = value;
+                  });
+                }
+              },
             ),
           ],
         ),
