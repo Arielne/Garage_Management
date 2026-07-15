@@ -185,7 +185,7 @@ class _ManagerDrawer extends StatelessWidget {
                     color: AppColors.accent,
                   ),
                   title: Text(
-                    'Thống kê doanh thu (D10)',
+                    'Thống kê doanh thu',
                     style: GoogleFonts.inter(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _ManagerDrawer extends StatelessWidget {
                     color: AppColors.accent,
                   ),
                   title: Text(
-                    'Quản lý Voucher (D7)',
+                    'Quản lý Voucher',
                     style: GoogleFonts.inter(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -245,7 +245,7 @@ class _ManagerDrawer extends StatelessWidget {
                     color: AppColors.accent,
                   ),
                   title: Text(
-                    'Soạn thông báo KM (D8)',
+                    'Soạn thông báo KM',
                     style: GoogleFonts.inter(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -275,7 +275,7 @@ class _ManagerDrawer extends StatelessWidget {
                     color: AppColors.accent,
                   ),
                   title: Text(
-                    'Dịch vụ & Bảng giá (D6)',
+                    'Dịch vụ & Bảng giá',
                     style: GoogleFonts.inter(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
