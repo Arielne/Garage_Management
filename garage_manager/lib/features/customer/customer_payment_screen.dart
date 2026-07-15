@@ -22,6 +22,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
   VoucherModel? _appliedVoucher;
   int _discountAmount = 0;
   bool _showQR = false;
+  String _paymentMethod = 'sepay';
 
   @override
   void dispose() {
@@ -88,18 +89,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
         }
       }
 
-      // Calculate totals to check min order
-      int totalParts = 0;
-      int totalLabor = 0;
-      for (final item in widget.invoice.lineItems) {
-        final value = _parseMoney(item.totalText);
-        if (item.type == InvoiceLineItemType.part) {
-          totalParts += value;
-        } else if (item.type == InvoiceLineItemType.service) {
-          totalLabor += value;
-        }
-      }
-      final int subtotal = totalParts + totalLabor;
+      final int subtotal = widget.invoice.subtotal.toInt();
 
       if (voucher.minOrder > 0 && subtotal < voucher.minOrder) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,16 +134,46 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
   Future<void> _completePayment() async {
     setState(() => _isProcessingPayment = true);
     try {
-      // In a real app, verify via webhook/API here.
+      final supabase = Supabase.instance.client;
       // Record voucher usage
       if (_appliedVoucher != null) {
-        final user = Supabase.instance.client.auth.currentUser;
+        final user = supabase.auth.currentUser;
         if (user != null) {
-          await Supabase.instance.client.from('used_vouchers').insert({
+          await supabase.from('used_vouchers').insert({
             'user_id': user.id,
             'voucher_id': _appliedVoucher!.id,
           });
         }
+      }
+      
+      // Update invoice
+      if (widget.invoice.workOrderId != null) {
+        int totalParts = 0;
+        int totalLabor = 0;
+        for (final item in widget.invoice.lineItems) {
+          final value = _parseMoney(item.totalText);
+          if (item.type == InvoiceLineItemType.part) {
+            totalParts += value;
+          } else if (item.type == InvoiceLineItemType.service) {
+            totalLabor += value;
+          }
+        }
+        final int subtotal = totalParts + totalLabor;
+        final int tax = (subtotal * 0.08).round();
+        int finalTotal = subtotal + tax - _discountAmount;
+        if (finalTotal < 0) finalTotal = 0;
+
+        final updateData = {
+          'status': 'da_thanh_toan',
+          'discount_amount': _discountAmount,
+          'total': finalTotal,
+          'payment_method': _paymentMethod,
+        };
+        if (_appliedVoucher != null) {
+          updateData['voucher_id'] = _appliedVoucher!.id;
+        }
+
+        await supabase.from('invoices').update(updateData).eq('work_order_id', widget.invoice.workOrderId!);
       }
       
       if (mounted) {
@@ -168,7 +188,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lưu lịch sử voucher: $e')),
+          SnackBar(content: Text('Lỗi cập nhật hóa đơn: $e')),
         );
       }
     } finally {
@@ -180,21 +200,9 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Business logic calculation
-    int totalParts = 0;
-    int totalLabor = 0;
-
-    for (final item in widget.invoice.lineItems) {
-      final value = _parseMoney(item.totalText);
-      if (item.type == InvoiceLineItemType.part) {
-        totalParts += value;
-      } else if (item.type == InvoiceLineItemType.service) {
-        totalLabor += value;
-      }
-    }
-
-    final int tax = (totalParts * 0.10).round();
-    int finalTotal = totalParts + tax + totalLabor - _discountAmount;
+    int subtotal = widget.invoice.subtotal.toInt();
+    int tax = widget.invoice.tax.toInt();
+    int finalTotal = subtotal + tax - _discountAmount;
     if (finalTotal < 0) finalTotal = 0;
 
     const accountNumber = '0396733726';
@@ -225,12 +233,11 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
               child: Column(
                 children: [
                   _RowItem(label: 'Mã hóa đơn', value: widget.invoice.code, isBold: true),
-                  const Divider(height: 24),
-                  _RowItem(label: 'Tiền phụ tùng', value: _formatMoney(totalParts)),
+                  const Divider(color: AppColors.divider),
+                  const SizedBox(height: 16),
+                  _RowItem(label: 'Tạm tính', value: _formatMoney(subtotal)),
                   const SizedBox(height: 8),
-                  _RowItem(label: 'Tiền công', value: _formatMoney(totalLabor)),
-                  const SizedBox(height: 8),
-                  _RowItem(label: 'Thuế (10% phụ tùng)', value: _formatMoney(tax)),
+                  _RowItem(label: 'Thuế VAT (8%)', value: _formatMoney(tax)),
                   
                   // Voucher Section
                   const SizedBox(height: 16),
@@ -292,104 +299,181 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
                     valueColor: AppColors.accent,
                     valueSize: 20,
                   ),
+
+                  // Payment Method Section
+                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Phương thức thanh toán',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: Text('Chuyển khoản QR', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500)),
+                          value: 'sepay',
+                          groupValue: _paymentMethod,
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: AppColors.accent,
+                          onChanged: (val) {
+                            setState(() {
+                              _paymentMethod = val!;
+                              _showQR = false;
+                            });
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: Text('Tiền mặt', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500)),
+                          value: 'tien_mat',
+                          groupValue: _paymentMethod,
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: AppColors.accent,
+                          onChanged: (val) {
+                            setState(() {
+                              _paymentMethod = val!;
+                              _showQR = false;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            if (!_showQR)
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showQR = true;
-                    });
-                  },
-                  icon: const Icon(Icons.qr_code, color: Colors.white),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            if (_paymentMethod == 'sepay') ...[
+              if (!_showQR)
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showQR = true;
+                      });
+                    },
+                    icon: const Icon(Icons.qr_code, color: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                  ),
-                  label: Text(
-                    'Tạo mã QR Thanh toán',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              )
-            else ...[
-              AppCard(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text(
-                      'Quét mã QR để thanh toán',
+                    label: Text(
+                      'Tạo mã QR Thanh toán',
                       style: GoogleFonts.inter(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Container(
-                      width: 250,
-                      height: 250,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(13),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
+                  ),
+                )
+              else ...[
+                AppCard(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Quét mã QR để thanh toán',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                      padding: const EdgeInsets.all(8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          qrUrl,
-                          fit: BoxFit.contain,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(child: CircularProgressIndicator());
-                          },
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Text(
-                              'Không thể tải mã QR',
-                              textAlign: TextAlign.center,
+                      const SizedBox(height: 20),
+                      Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(13),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            qrUrl,
+                            fit: BoxFit.contain,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(child: CircularProgressIndicator());
+                            },
+                            errorBuilder: (context, error, stackTrace) => const Center(
+                              child: Text(
+                                'Không thể tải mã QR',
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isProcessingPayment ? null : _completePayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.statusDone,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isProcessingPayment
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Xác nhận đã thanh toán',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ] else ...[
+              // Tiền mặt
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: _isProcessingPayment ? null : _completePayment,
+                  icon: const Icon(Icons.payments_outlined, color: Colors.white),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.statusDone,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: _isProcessingPayment
-                      ? const CircularProgressIndicator(color: Colors.white)
+                  label: _isProcessingPayment
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(
-                          'Xác nhận đã thanh toán',
+                          'Xác nhận thu tiền mặt',
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

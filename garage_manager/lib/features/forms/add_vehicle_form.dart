@@ -54,7 +54,7 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
                 leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
                 title: const Text('Chọn ảnh từ thư viện'),
                 onTap: () async {
-                  Navigator.pop(context);
+                  Navigator.pop(context); 
                   final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
                   if (file != null) {
                     final bytes = await file.readAsBytes();
