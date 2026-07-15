@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../core/utils/image_upload_helper.dart';
 import '../../core/app_routes.dart';
 import '../../core/models.dart';
 import '../../theme/app_colors.dart';
@@ -157,16 +160,25 @@ class VehicleDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
                           color: AppColors.accentSoft,
                           shape: BoxShape.circle,
+                          image: vehicle?.imageUrl != null && vehicle!.imageUrl!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(vehicle.imageUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: const Icon(
-                          Icons.motorcycle,
-                          size: 32,
-                          color: AppColors.accent,
-                        ),
+                        child: vehicle?.imageUrl != null && vehicle!.imageUrl!.isNotEmpty
+                            ? null
+                            : const Icon(
+                                Icons.motorcycle,
+                                size: 32,
+                                color: AppColors.accent,
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -397,113 +409,217 @@ class VehicleDetailScreen extends ConsumerWidget {
     final ccController = TextEditingController(text: vehicle.engineCc?.toString() ?? '');
     final odoController = TextEditingController(text: vehicle.odometer?.toString() ?? '');
 
+    File? selectedImage;
+    bool isUploading = false;
+
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surfaceCard,
-          title: Text(
-            'Sửa thông tin xe',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700),
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Plate
-                  Text('Biển số xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: plateController,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(hintText: 'Biển số...'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập biển số' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Model Name
-                  Text('Tên dòng xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(hintText: 'Dòng xe...'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập tên dòng xe' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Year
-                  Text('Năm sản xuất', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: yearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Năm...'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // CC
-                  Text('Dung tích (cc)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: ccController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Dung tích cc...'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ODO
-                  Text('Số ODO (km)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: odoController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Số km...'),
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceCard,
+              title: Text(
+                'Sửa thông tin xe',
+                style: GoogleFonts.sora(fontWeight: FontWeight.w700),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  try {
-                    final supabase = Supabase.instance.client;
-                    await supabase.from('vehicles').update({
-                      'model': nameController.text.trim(),
-                      'license_plate': plateController.text.trim().toUpperCase(),
-                      'year': int.tryParse(yearController.text.trim()),
-                      'engine_cc': int.tryParse(ccController.text.trim()),
-                      'odometer': int.tryParse(odoController.text.trim()),
-                    }).eq('license_plate', vehicle.plate);
-                    
-                    await ref.read(customerProvider.notifier).loadCustomers();
-                    
-                    if (context.mounted) {
-                      Navigator.pop(dialogContext);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã cập nhật thông tin xe!'),
-                          backgroundColor: AppColors.statusDone,
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image picker in Dialog
+                      Center(
+                        child: GestureDetector(
+                          onTap: isUploading ? null : () async {
+                            showModalBottomSheet(
+                              context: dialogContext,
+                              backgroundColor: AppColors.surfaceCard,
+                              builder: (context) {
+                                return SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                                        title: const Text('Chọn ảnh từ thư viện'),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
+                                          if (file != null) {
+                                            setState(() {
+                                              selectedImage = file;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
+                                        title: const Text('Chụp ảnh mới'),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          final file = await ImageUploadHelper.pickImage(ImageSource.camera);
+                                          if (file != null) {
+                                            setState(() {
+                                              selectedImage = file;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundColor: AppColors.borderSubtle,
+                                backgroundImage: selectedImage != null 
+                                    ? FileImage(selectedImage!) 
+                                    : (vehicle.imageUrl != null && vehicle.imageUrl!.isNotEmpty
+                                        ? NetworkImage(vehicle.imageUrl!) as ImageProvider
+                                        : null),
+                                child: selectedImage == null && (vehicle.imageUrl == null || vehicle.imageUrl!.isEmpty)
+                                    ? const Icon(
+                                        Icons.add_a_photo_outlined,
+                                        size: 24,
+                                        color: AppColors.textSecondary,
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: AppColors.accent,
+                                  child: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Plate
+                      Text('Biển số xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: plateController,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(hintText: 'Biển số...'),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập biển số' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Model Name
+                      Text('Tên dòng xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(hintText: 'Dòng xe...'),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập tên dòng xe' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Year
+                      Text('Năm sản xuất', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: yearController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Năm...'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // CC
+                      Text('Dung tích (cc)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: ccController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Dung tích cc...'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ODO
+                      Text('Số ODO (km)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: odoController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Số km...'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
+                  child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+                ),
+                TextButton(
+                  onPressed: isUploading ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setState(() {
+                        isUploading = true;
+                      });
+                      try {
+                        String? newImageUrl = vehicle.imageUrl;
+                        if (selectedImage != null) {
+                          newImageUrl = await ImageUploadHelper.uploadVehicleImage(selectedImage!);
+                        }
+
+                        final supabase = Supabase.instance.client;
+                        await supabase.from('vehicles').update({
+                          'model': nameController.text.trim(),
+                          'license_plate': plateController.text.trim().toUpperCase(),
+                          'year': int.tryParse(yearController.text.trim()),
+                          'engine_cc': int.tryParse(ccController.text.trim()),
+                          'odometer': int.tryParse(odoController.text.trim()),
+                          'image_url': newImageUrl,
+                        }).eq('license_plate', vehicle.plate);
+                        
+                        await ref.read(customerProvider.notifier).loadCustomers();
+                        
+                        if (context.mounted) {
+                          Navigator.pop(dialogContext);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã cập nhật thông tin xe!'),
+                              backgroundColor: AppColors.statusDone,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        print('Error updating vehicle: $e');
+                      } finally {
+                        setState(() {
+                          isUploading = false;
+                        });
+                      }
                     }
-                  } catch (e) {
-                    print('Error updating vehicle: $e');
-                  }
-                }
-              },
-              child: const Text('Lưu', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
-            ),
-          ],
+                  },
+                  child: Text(
+                    isUploading ? 'Đang lưu...' : 'Lưu', 
+                    style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

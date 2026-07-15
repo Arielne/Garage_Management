@@ -6,6 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/form_scaffold.dart';
 import '../manager/customers/customer_provider.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../core/utils/image_upload_helper.dart';
 
 class AddVehicleForm extends ConsumerStatefulWidget {
   const AddVehicleForm({super.key});
@@ -23,6 +26,9 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
   final _ccController = TextEditingController();
   final _odoController = TextEditingController();
 
+  File? _selectedImage;
+  bool _isUploading = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -34,8 +40,59 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
     super.dispose();
   }
 
-  void _handleSubmit() {
+  void _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceCard,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                title: const Text('Chọn ảnh từ thư viện'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
+                  if (file != null) {
+                    setState(() {
+                      _selectedImage = file;
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
+                title: const Text('Chụp ảnh mới'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final file = await ImageUploadHelper.pickImage(ImageSource.camera);
+                  if (file != null) {
+                    setState(() {
+                      _selectedImage = file;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isUploading = true;
+      });
+
+      String? imageUrl;
+      if (_selectedImage != null) {
+        imageUrl = await ImageUploadHelper.uploadVehicleImage(_selectedImage!);
+      }
+
       final brandInput = _brandController.text.trim();
       final modelInput = _nameController.text.trim();
       final combinedName = modelInput.toLowerCase().contains(brandInput.toLowerCase())
@@ -51,27 +108,33 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
         engineCc: int.tryParse(_ccController.text.trim()),
         year: int.tryParse(_yearController.text.trim()),
         odometer: int.tryParse(_odoController.text.trim()),
+        imageUrl: imageUrl,
       );
 
       // Save vehicle dynamically to currently logged-in user profile on Supabase
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser != null) {
-        ref.read(customerProvider.notifier).addVehicleToCustomer(
+        await ref.read(customerProvider.notifier).addVehicleToCustomer(
           currentUser.id,
           newVehicle,
           isUserId: true,
         );
       } else {
-        ref.read(customerProvider.notifier).addVehicleToCustomer('0987654321', newVehicle);
+        await ref.read(customerProvider.notifier).addVehicleToCustomer('0987654321', newVehicle);
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã thêm xe mới thành công!'),
-          backgroundColor: AppColors.statusDone,
-        ),
-      );
-      Navigator.of(context).pop();
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm xe mới thành công!'),
+            backgroundColor: AppColors.statusDone,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -93,10 +156,47 @@ class _AddVehicleFormState extends ConsumerState<AddVehicleForm> {
         child: Form(
           key: _formKey,
           child: FormScaffold(
-            submitLabel: 'Lưu thông tin xe',
-            onSubmit: _handleSubmit,
+            submitLabel: _isUploading ? 'Đang lưu thông tin xe...' : 'Lưu thông tin xe',
+            onSubmit: _isUploading ? null : _handleSubmit,
             children: [
               const SizedBox(height: 12),
+              // Image Picker Section
+              Center(
+                child: GestureDetector(
+                  onTap: _isUploading ? null : _pickImage,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 54,
+                        backgroundColor: AppColors.borderSubtle,
+                        backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                        child: _selectedImage == null
+                            ? const Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 36,
+                                color: AppColors.textSecondary,
+                              )
+                            : null,
+                      ),
+                      if (_selectedImage != null)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppColors.accent,
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               // Vehicle Name field
               Text(
                 'Tên dòng xe',
