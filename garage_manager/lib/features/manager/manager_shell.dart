@@ -62,11 +62,7 @@ class _ManagerShellState extends State<ManagerShell> {
       const InventoryScreen(),
     ];
 
-    final titles = [
-      'Tổng quan',
-      'Quản lý Khách hàng',
-      'Kho Phụ Tùng',
-    ];
+    final titles = ['Tổng quan', 'Quản lý Khách hàng', 'Kho Phụ Tùng'];
 
     return AppScaffold(
       title: titles[_currentIndex],
@@ -93,8 +89,6 @@ class _ManagerShellState extends State<ManagerShell> {
   }
 }
 
-
-
 class _ManagerDrawer extends StatelessWidget {
   const _ManagerDrawer({required this.onOpenInvoices});
 
@@ -110,16 +104,18 @@ class _ManagerDrawer extends StatelessWidget {
           DrawerHeader(
             decoration: const BoxDecoration(
               color: AppColors.bgApp,
-              border: Border(
-                bottom: BorderSide(color: AppColors.borderSubtle),
-              ),
+              border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
             ),
             child: Row(
               children: [
                 const CircleAvatar(
                   backgroundColor: AppColors.accent,
                   radius: 28,
-                  child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
+                  child: Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -137,7 +133,8 @@ class _ManagerDrawer extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        Supabase.instance.client.auth.currentUser?.email ?? 'admin@garage.com',
+                        Supabase.instance.client.auth.currentUser?.email ??
+                            'admin@garage.com',
                         style: GoogleFonts.inter(
                           color: AppColors.textSecondary,
                           fontSize: 11,
@@ -151,16 +148,31 @@ class _ManagerDrawer extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Drawer items
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 ListTile(
-                  leading: const Icon(Icons.receipt_long_outlined, color: AppColors.accent),
-                  title: Text('Tất cả hóa đơn', style: GoogleFonts.inter(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Xem danh sách hóa đơn', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.receipt_long_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Tất cả hóa đơn',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Xem danh sách hóa đơn',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // close drawer
                     onOpenInvoices();
@@ -168,9 +180,24 @@ class _ManagerDrawer extends StatelessWidget {
                 ),
                 const Divider(color: AppColors.divider, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.bar_chart_outlined, color: AppColors.accent),
-                  title: Text('Thống kê doanh thu (D10)', style: GoogleFonts.inter(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Xem biểu đồ & cơ cấu thu', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.bar_chart_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Thống kê doanh thu (D10)',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Xem biểu đồ & cơ cấu thu',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // close drawer
                     Navigator.push(
@@ -183,9 +210,24 @@ class _ManagerDrawer extends StatelessWidget {
                 ),
                 const Divider(color: AppColors.divider, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.confirmation_number_outlined, color: AppColors.accent),
-                  title: Text('Quản lý Voucher (D7)', style: GoogleFonts.inter(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Tạo & cấp phát voucher', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.confirmation_number_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Quản lý Voucher (D7)',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Tạo & cấp phát voucher',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // close drawer
                     Navigator.push(
@@ -198,9 +240,24 @@ class _ManagerDrawer extends StatelessWidget {
                 ),
                 const Divider(color: AppColors.divider, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.campaign_outlined, color: AppColors.accent),
-                  title: Text('Soạn thông báo KM (D8)', style: GoogleFonts.inter(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Gửi tin khuyến mãi hàng loạt', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.campaign_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Soạn thông báo KM (D8)',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Gửi tin khuyến mãi hàng loạt',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // close drawer
                     Navigator.push(
@@ -213,9 +270,24 @@ class _ManagerDrawer extends StatelessWidget {
                 ),
                 const Divider(color: AppColors.divider, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.build_circle_outlined, color: AppColors.accent),
-                  title: Text('Dịch vụ & Bảng giá (D6)', style: GoogleFonts.inter(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Cấu hình giá dịch vụ', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.build_circle_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Dịch vụ & Bảng giá (D6)',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Cấu hình giá dịch vụ',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context); // close drawer
                     Navigator.push(
@@ -226,17 +298,61 @@ class _ManagerDrawer extends StatelessWidget {
                     );
                   },
                 ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.assignment_ind_outlined,
+                    color: AppColors.accent,
+                  ),
+                  title: Text(
+                    'Tiếp nhận & Giao việc',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Xem lịch khách đặt & phân công thợ',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.appointmentManagement,
+                    );
+                  },
+                ),
                 const Divider(color: AppColors.divider, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.logout_outlined, color: AppColors.statusError),
-                  title: Text('Đăng xuất', style: GoogleFonts.inter(color: AppColors.statusError, fontWeight: FontWeight.bold)),
-                  subtitle: Text('Thoát tài khoản quản trị', style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 11)),
+                  leading: const Icon(
+                    Icons.logout_outlined,
+                    color: AppColors.statusError,
+                  ),
+                  title: Text(
+                    'Đăng xuất',
+                    style: GoogleFonts.inter(
+                      color: AppColors.statusError,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Thoát tài khoản quản trị',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(context); // close drawer
                     try {
                       await Supabase.instance.client.auth.signOut();
                       if (context.mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppRoutes.login,
+                          (route) => false,
+                        );
                       }
                     } catch (e) {
                       print('Error signing out: $e');
