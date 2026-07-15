@@ -186,14 +186,29 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   return InvoiceRepository(Supabase.instance.client);
 });
 
+/// Id của tài khoản đang đăng nhập, tự tính lại mỗi khi auth đổi.
+/// Các provider lọc theo người dùng phải watch provider này: không có nó,
+/// cache của tài khoản trước vẫn được dùng lại sau khi đăng nhập tài khoản
+/// khác (khách mới thấy trống, hoặc thấy hóa đơn của khách cũ).
+/// Token tự gia hạn cũng bắn sự kiện, nhưng id không đổi nên Riverpod
+/// không báo xuống dưới → không nạp lại thừa.
+final authUserIdProvider = Provider<String?>((ref) {
+  final client = Supabase.instance.client;
+  final sub = client.auth.onAuthStateChange.listen((_) => ref.invalidateSelf());
+  ref.onDispose(sub.cancel);
+  return client.auth.currentUser?.id;
+});
+
 /// Danh sách TOÀN BỘ hóa đơn (D9, D1) — có sẵn 3 trạng thái
 /// loading (spinner) / error (lỗi) / data (list) khi UI watch.
 final invoiceListProvider = FutureProvider<List<Invoice>>((ref) {
+  ref.watch(authUserIdProvider);
   return ref.watch(invoiceRepositoryProvider).getInvoices();
 });
 
 /// Hóa đơn của khách đang đăng nhập (B4 — "Hóa đơn của tôi").
 final myInvoiceListProvider = FutureProvider<List<Invoice>>((ref) {
+  ref.watch(authUserIdProvider);
   return ref.watch(invoiceRepositoryProvider).getMyInvoices();
 });
 

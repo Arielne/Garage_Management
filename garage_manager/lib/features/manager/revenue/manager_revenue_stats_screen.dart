@@ -160,6 +160,21 @@ class _ManagerRevenueStatsScreenState
                       : null,
                 ),
               ],
+              // Tab Tháng cộng nhiều tháng chứ không phải tháng hiện tại.
+              // Không ghi ra thì lệch với thẻ "Doanh thu tháng này" bên D1.
+              // Thẻ chỉ rộng 1/3 màn (maxLines 1) nên để kỳ ở ngoài thẻ.
+              if (!report.isWeek && !report.isDay && report.points.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Cộng ${report.points.length} tháng: '
+                  '${report.points.first.fullLabel} – ${report.points.last.fullLabel}',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               _SummaryGrid(report: report),
               const SizedBox(height: 16),
