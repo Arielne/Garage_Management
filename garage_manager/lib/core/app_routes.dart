@@ -17,6 +17,7 @@ import '../features/technician/notification_screen.dart';
 import '../features/technician/technician_personal_info_screen.dart';
 import '../features/manager/jobs/assign_job_screen.dart';
 import 'fake_data.dart';
+
 import 'models.dart';
 
 class AppRoutes {
@@ -98,11 +99,17 @@ class AppRoutes {
           settings: settings,
         );
       case invoiceDetail:
-        final invoice = settings.arguments is Invoice
-            ? settings.arguments as Invoice
-            : demoInvoices.first;
+        if (settings.arguments is! Invoice) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Không tìm thấy hóa đơn.')),
+            ),
+            settings: settings,
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => InvoiceDetailScreen(invoice: invoice),
+          builder: (_) =>
+              InvoiceDetailScreen(invoice: settings.arguments as Invoice),
           settings: settings,
         );
       case customerDetail:
