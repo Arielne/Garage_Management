@@ -111,7 +111,9 @@ class ManagerDashboardScreen extends ConsumerWidget {
           children: [
             _KpiCard(
               icon: Icons.payments_outlined,
-              label: 'Doanh thu',
+              // Ghi rõ kỳ: thẻ này tính tháng hiện tại, còn biểu đồ ngay dưới
+              // cộng nhiều tháng — hai số khác nhau là đúng, không phải lệch.
+              label: 'Doanh thu tháng này',
               value: revenueText,
               color: AppColors.accent,
             ),
@@ -258,7 +260,9 @@ class _RevenueChartCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '6 tháng gần nhất',
+                      // Đếm theo số cột thật: view chỉ trả về những tháng đã có
+                      // hóa đơn (tối đa 6), ghi cứng "6 tháng" sẽ sai khi ít hơn.
+                      '${revenuePoints.length} tháng gần nhất',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
