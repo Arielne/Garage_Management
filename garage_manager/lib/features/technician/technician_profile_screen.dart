@@ -59,7 +59,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
 
         for (var order in orders) {
           final status = order['status']?.toString().toLowerCase() ?? '';
-          if (status == 'completed' || status == 'done') {
+          if (status == 'hoan_thanh' || status == 'da_ban_giao') {
             completedCount++;
           }
 
