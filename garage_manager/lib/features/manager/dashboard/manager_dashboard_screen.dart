@@ -2,24 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../core/fake_data.dart';
 import '../../../core/models.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/app_card.dart';
+import '../../customer/invoices/invoice_repository.dart';
 import '../customers/customer_provider.dart';
-import '../promotions/promo_compose_screen.dart';
-import '../revenue/manager_revenue_stats_screen.dart';
-import '../services/services_pricing_screen.dart';
-import '../vouchers/voucher_management_screen.dart';
-
-const _monthlyRevenue = [
-  _RevenuePoint(label: 'T1', value: 18500000),
-  _RevenuePoint(label: 'T2', value: 22600000),
-  _RevenuePoint(label: 'T3', value: 19800000),
-  _RevenuePoint(label: 'T4', value: 28400000),
-  _RevenuePoint(label: 'T5', value: 31200000),
-  _RevenuePoint(label: 'T6', value: 35400000),
-];
+import '../inventory/inventory_screen.dart';
+import '../revenue/revenue_repository.dart';
 
 class ManagerDashboardScreen extends ConsumerWidget {
   const ManagerDashboardScreen({super.key, required this.onOpenInvoices});
@@ -29,10 +18,57 @@ class ManagerDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customers = ref.watch(customerProvider);
-    final paidCount = demoInvoices
+    final invoicesAsync = ref.watch(invoiceListProvider);
+    final inventoryAsync = ref.watch(inventoryItemsProvider);
+    final revenueAsync = ref.watch(
+      revenueReportProvider((range: RevenueRange.month, weekStart: null, day: null)),
+    );
+
+    // Loading/lỗi gộp cho 3 nguồn Supabase: hóa đơn, kho phụ tùng, doanh thu.
+    if (invoicesAsync.isLoading ||
+        inventoryAsync.isLoading ||
+        revenueAsync.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      );
+    }
+    if (invoicesAsync.hasError ||
+        inventoryAsync.hasError ||
+        revenueAsync.hasError) {
+      return _DashboardError(
+        onRetry: () {
+          ref.invalidate(invoiceListProvider);
+          ref.invalidate(inventoryItemsProvider);
+          ref.invalidate(
+            revenueReportProvider((range: RevenueRange.month, weekStart: null, day: null)),
+          );
+        },
+      );
+    }
+
+    final invoices = invoicesAsync.value!;
+    final inventory = inventoryAsync.value!;
+    final revenue = revenueAsync.value!;
+
+    // 4 thẻ tiền/hóa đơn tính theo THÁNG HIỆN TẠI (giờ VN của máy) cho cùng
+    // một mốc; biểu đồ bên dưới vẫn giữ 6 tháng để xem xu hướng.
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    final nextMonth = DateTime(now.year, now.month + 1);
+    final monthInvoices = invoices.where((invoice) {
+      final createdAt = invoice.createdAt;
+      return !createdAt.isBefore(monthStart) && createdAt.isBefore(nextMonth);
+    }).toList();
+    final invoiceCount = monthInvoices.length;
+    final paidCount = monthInvoices
         .where((invoice) => invoice.status == InvoicePaymentStatus.paid)
         .length;
-    final waitingCount = demoInvoices.length - paidCount;
+    final waitingCount = invoiceCount - paidCount;
+    final monthRevenue = monthInvoices
+        .where((invoice) => invoice.status == InvoicePaymentStatus.paid)
+        .fold<num>(0, (sum, invoice) => sum + invoice.total);
+    final revenueText = _formatMoney(monthRevenue.round());
+
     final vehicleCount = customers.fold<int>(
       0,
       (total, customer) => total + customer.vehicles.length,
@@ -46,21 +82,18 @@ class ManagerDashboardScreen extends ConsumerWidget {
         return total + activeVehicles.length;
       },
     );
-    final lowStockCount = demoInventoryItems
-        .where((inventoryItem) => inventoryItem.isLowStock)
-        .length;
-    final revenueText = _formatMoney(
-      demoInvoices.fold<int>(
-        0,
-        (total, invoice) => total + _parseMoney(invoice.totalText),
-      ),
-    );
+    final lowStockCount =
+        inventory.where((item) => item.isLowStock).length;
+    final revenuePoints = [
+      for (final point in revenue.points)
+        _RevenuePoint(label: point.label, value: point.revenue.round()),
+    ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'Tổng quan hôm nay',
+          'Tổng quan',
           style: GoogleFonts.sora(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -85,7 +118,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
             _KpiCard(
               icon: Icons.receipt_long_outlined,
               label: 'Hóa đơn',
-              value: demoInvoices.length.toString(),
+              value: invoiceCount.toString(),
               color: AppColors.textPrimary,
             ),
             _KpiCard(
@@ -115,7 +148,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
             _KpiCard(
               icon: Icons.inventory_2_outlined,
               label: 'Phụ tùng',
-              value: demoInventoryItems.length.toString(),
+              value: inventory.length.toString(),
               color: AppColors.textPrimary,
             ),
             _KpiCard(
@@ -128,81 +161,62 @@ class ManagerDashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
         _RevenueChartCard(
-          revenuePoints: _monthlyRevenue,
+          revenuePoints: revenuePoints,
           totalText: _formatCompactMoney(
-            _monthlyRevenue.fold<int>(
+            revenuePoints.fold<int>(
               0,
               (total, point) => total + point.value,
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        Text(
-          'Lối tắt quản lý',
-          style: GoogleFonts.sora(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.receipt_long_outlined,
-          title: 'Tất cả hóa đơn',
-          subtitle: 'Xem danh sách và mở chi tiết hóa đơn',
-          onTap: onOpenInvoices,
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.bar_chart_outlined,
-          title: 'Thống kê doanh thu',
-          subtitle: 'Xem biểu đồ doanh thu và cơ cấu nguồn thu',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ManagerRevenueStatsScreen(),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.confirmation_number_outlined,
-          title: 'Quản lý Voucher',
-          subtitle: 'Tạo và cấp phát voucher cho khách hàng',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const VoucherManagementScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.campaign_outlined,
-          title: 'Soạn thông báo KM',
-          subtitle: 'Gửi tin khuyến mãi hàng loạt',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PromoComposeScreen()),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _ShortcutCard(
-          icon: Icons.build_circle_outlined,
-          title: 'Dịch vụ & Bảng giá',
-          subtitle: 'Cấu hình giá dịch vụ và thêm dịch vụ mới',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ServicesPricingScreen()),
-            );
-          },
-        ),
+
       ],
+    );
+  }
+}
+
+class _DashboardError extends StatelessWidget {
+  const _DashboardError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.wifi_off_outlined,
+              size: 40,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Không tải được số liệu.\nKiểm tra kết nối mạng rồi thử lại.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, color: AppColors.accent),
+              label: Text(
+                'Thử lại',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -283,16 +297,19 @@ class _RevenueChartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+          // Mỗi nhãn nằm giữa 1 ô bằng nhau -> thẳng hàng với tâm cột.
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               for (final point in revenuePoints)
-                Text(
-                  point.label,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
+                Expanded(
+                  child: Text(
+                    point.label,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
             ],
@@ -351,65 +368,7 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
-class _ShortcutCard extends StatelessWidget {
-  const _ShortcutCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.accentSoft,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.textTertiary),
-        ],
-      ),
-    );
-  }
-}
 
 class _LegendDot extends StatelessWidget {
   const _LegendDot({required this.label});
@@ -499,11 +458,6 @@ class _RevenuePoint {
 
   final String label;
   final int value;
-}
-
-int _parseMoney(String value) {
-  final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-  return int.tryParse(digits) ?? 0;
 }
 
 String _formatMoney(int value) {

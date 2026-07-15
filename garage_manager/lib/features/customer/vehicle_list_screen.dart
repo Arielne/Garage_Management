@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
@@ -7,35 +9,50 @@ import '../../widgets/list_scaffold.dart';
 import '../../widgets/plate_text.dart';
 import '../../widgets/status_chip.dart';
 import '../../core/app_routes.dart';
+import '../manager/customers/customer_provider.dart';
 
-class VehicleListScreen extends StatefulWidget {
+class VehicleListScreen extends ConsumerWidget {
   const VehicleListScreen({super.key});
 
-  @override
-  State<VehicleListScreen> createState() => _VehicleListScreenState();
-}
-
-class _VehicleListScreenState extends State<VehicleListScreen> {
-  final List<Map<String, dynamic>> _vehicles = [
-    {
-      'name': 'Yamaha Exciter 150 RC',
-      'plate': '59-X1 234.56',
-      'statusLabel': 'Đang sửa chữa',
-      'status': AppStatus.active,
-      'lastService': '01/07/2026',
-    },
-    {
-      'name': 'Honda Vario 150',
-      'plate': '60-B2 889.12',
-      'statusLabel': 'Hoạt động tốt',
-      'status': AppStatus.done,
-      'lastService': '20/05/2026',
-    },
-  ];
+  AppStatus _mapStringStatusToAppStatus(String status) {
+    switch (status) {
+      case 'active':
+        return AppStatus.active;
+      case 'done':
+        return AppStatus.done;
+      case 'wait':
+        return AppStatus.wait;
+      case 'error':
+        return AppStatus.error;
+      default:
+        return AppStatus.idle;
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return _vehicles.isEmpty
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read list of customers from Riverpod
+    final customers = ref.watch(customerProvider);
+    
+    // Find the current logged-in customer matching by user_id or email
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    final customer = customers.firstWhere(
+      (c) => c.userId == currentUser?.id || c.email == currentUser?.email,
+      orElse: () => CustomerDetailModel(
+        name: currentUser?.userMetadata?['full_name'] ?? 'Khách hàng',
+        phone: '',
+        email: currentUser?.email ?? '',
+        address: 'Địa chỉ chưa cập nhật',
+        vehicles: [],
+        serviceHistory: [],
+        lastVisit: 'Hôm nay',
+        userId: currentUser?.id,
+      ),
+    );
+
+    final vehicles = customer.vehicles;
+
+    return vehicles.isEmpty
         ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -73,14 +90,14 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ..._vehicles.map((vehicle) {
+              ...vehicles.map((vehicle) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: AppCard(
                     onTap: () {
                       Navigator.of(context).pushNamed(
                         AppRoutes.vehicleDetail,
-                        arguments: {'plate': vehicle['plate']},
+                        arguments: {'plate': vehicle.plate},
                       );
                     },
                     child: Column(
@@ -95,7 +112,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    vehicle['name'],
+                                    vehicle.name,
                                     style: GoogleFonts.sora(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -104,7 +121,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   PlateText(
-                                    vehicle['plate'],
+                                    vehicle.plate,
                                     fontSize: 14,
                                     color: AppColors.textSecondary,
                                   ),
@@ -112,8 +129,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                               ),
                             ),
                             StatusChip(
-                              label: vehicle['statusLabel'],
-                              status: vehicle['status'],
+                              label: vehicle.statusLabel,
+                              status: _mapStringStatusToAppStatus(vehicle.status),
                             ),
                           ],
                         ),
@@ -137,7 +154,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                               ],
                             ),
                             Text(
-                              vehicle['lastService'],
+                              vehicle.lastService,
                               style: GoogleFonts.robotoMono(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

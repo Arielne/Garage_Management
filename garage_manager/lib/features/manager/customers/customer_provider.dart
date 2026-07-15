@@ -1,16 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VehicleModel {
   final String name;
   final String plate;
   final String statusLabel;
   final String status; // active (đang sửa), done (hoạt động tốt), vv.
+  final String lastService;
+  final int? engineCc;
+  final int? year;
+  final int? odometer;
 
   VehicleModel({
     required this.name,
     required this.plate,
     required this.statusLabel,
     required this.status,
+    required this.lastService,
+    this.engineCc,
+    this.year,
+    this.odometer,
   });
 
   VehicleModel copyWith({
@@ -18,12 +27,20 @@ class VehicleModel {
     String? plate,
     String? statusLabel,
     String? status,
+    String? lastService,
+    int? engineCc,
+    int? year,
+    int? odometer,
   }) {
     return VehicleModel(
       name: name ?? this.name,
       plate: plate ?? this.plate,
       statusLabel: statusLabel ?? this.statusLabel,
       status: status ?? this.status,
+      lastService: lastService ?? this.lastService,
+      engineCc: engineCc ?? this.engineCc,
+      year: year ?? this.year,
+      odometer: odometer ?? this.odometer,
     );
   }
 }
@@ -34,6 +51,7 @@ class ServiceHistoryModel {
   final String cost;
   final String notes;
   final String type;
+  final String vehiclePlate;
 
   ServiceHistoryModel({
     required this.date,
@@ -41,6 +59,7 @@ class ServiceHistoryModel {
     required this.cost,
     required this.notes,
     required this.type,
+    required this.vehiclePlate,
   });
 }
 
@@ -52,6 +71,7 @@ class CustomerDetailModel {
   final List<VehicleModel> vehicles;
   final List<ServiceHistoryModel> serviceHistory;
   final String lastVisit;
+  final String? userId;
 
   CustomerDetailModel({
     required this.name,
@@ -61,6 +81,7 @@ class CustomerDetailModel {
     required this.vehicles,
     required this.serviceHistory,
     required this.lastVisit,
+    this.userId,
   });
 
   CustomerDetailModel copyWith({
@@ -71,6 +92,7 @@ class CustomerDetailModel {
     List<VehicleModel>? vehicles,
     List<ServiceHistoryModel>? serviceHistory,
     String? lastVisit,
+    String? userId,
   }) {
     return CustomerDetailModel(
       name: name ?? this.name,
@@ -80,6 +102,7 @@ class CustomerDetailModel {
       vehicles: vehicles ?? this.vehicles,
       serviceHistory: serviceHistory ?? this.serviceHistory,
       lastVisit: lastVisit ?? this.lastVisit,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -87,144 +110,184 @@ class CustomerDetailModel {
 class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
   @override
   List<CustomerDetailModel> build() {
-    return [
-      CustomerDetailModel(
-        name: 'Nguyễn Văn An',
-        phone: '0987654321',
-        email: 'an.nguyen@gmail.com',
-        address: '123 Đường Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh',
-        vehicles: [
-          VehicleModel(
-            name: 'Yamaha Exciter 150 RC',
-            plate: '59-X1 234.56',
-            statusLabel: 'Đang sửa chữa',
-            status: 'active',
-          ),
-          VehicleModel(
-            name: 'Honda Vision 110',
-            plate: '59-X1 999.88',
-            statusLabel: 'Hoạt động tốt',
-            status: 'done',
-          ),
-        ],
-        serviceHistory: [
-          ServiceHistoryModel(
-            date: '01/07/2026',
-            workOrder: 'WO-2026-012',
-            cost: '2.450.000đ',
-            notes: 'Lắp pô độ Akrapovic, căn chỉnh xăng gió (Dynojet).',
-            type: 'Độ & Nâng cấp',
-          ),
-          ServiceHistoryModel(
-            date: '15/04/2026',
-            workOrder: 'WO-2026-001',
-            cost: '1.200.000đ',
-            notes: 'Thay lốp trước/sau Michelin City Grip 2.',
-            type: 'Bảo dưỡng định kỳ',
-          ),
-        ],
-        lastVisit: 'Hôm qua',
-      ),
-      CustomerDetailModel(
-        name: 'Trần Minh Khoa',
-        phone: '0901234567',
-        email: 'khoa.tran@yahoo.com',
-        address: '456 Lê Hồng Phong, Quận 5, TP. Hồ Chí Minh',
-        vehicles: [
-          VehicleModel(
-            name: 'Honda Vario 150',
-            plate: '60-B2 889.12',
-            statusLabel: 'Hoạt động tốt',
-            status: 'done',
-          ),
-        ],
-        serviceHistory: [
-          ServiceHistoryModel(
-            date: '20/05/2026',
-            workOrder: 'WO-2026-004',
-            cost: '850.000đ',
-            notes: 'Thay nhớt Motul, lọc gió K&N, vệ sinh nồi xe ga.',
-            type: 'Bảo dưỡng định kỳ',
-          ),
-        ],
-        lastVisit: '24/06/2026',
-      ),
-      CustomerDetailModel(
-        name: 'Phạm Quốc Tuấn',
-        phone: '0912345678',
-        email: 'tuan.pq@gmail.com',
-        address: '789 Nguyễn Trãi, Quận 5, TP. Hồ Chí Minh',
-        vehicles: [
-          VehicleModel(
-            name: 'Suzuki Raider 150 Fi',
-            plate: '59-S3 555.55',
-            statusLabel: 'Đang sửa chữa',
-            status: 'active',
-          ),
-          VehicleModel(
-            name: 'Honda Winner X 150',
-            plate: '59-S3 777.77',
-            statusLabel: 'Hoạt động tốt',
-            status: 'done',
-          ),
-          VehicleModel(
-            name: 'Vespa Sprint 125',
-            plate: '59-S3 888.88',
-            statusLabel: 'Hoạt động tốt',
-            status: 'done',
-          ),
-        ],
-        serviceHistory: [
-          ServiceHistoryModel(
-            date: '15/06/2026',
-            workOrder: 'WO-2026-009',
-            cost: '1.800.000đ',
-            notes: 'Thay nhông sên dĩa DID vàng, thay má phanh Nissin.',
-            type: 'Sửa chữa hao mòn',
-          ),
-        ],
-        lastVisit: '15/06/2026',
-      ),
-      CustomerDetailModel(
-        name: 'Lê Thị Mai',
-        phone: '0977889900',
-        email: 'mai.le@outlook.com',
-        address: '101 Cách Mạng Tháng Tám, Quận 3, TP. Hồ Chí Minh',
-        vehicles: [
-          VehicleModel(
-            name: 'Honda Lead 125',
-            plate: '59-H1 123.45',
-            statusLabel: 'Hoạt động tốt',
-            status: 'done',
-          ),
-        ],
-        serviceHistory: [
-          ServiceHistoryModel(
-            date: '30/06/2026',
-            workOrder: 'WO-2026-011',
-            cost: '320.000đ',
-            notes: 'Thay nhớt máy Wolver, nhớt hộp số láp Liqui Moly.',
-            type: 'Bảo dưỡng nhanh',
-          ),
-        ],
-        lastVisit: 'Vừa mới đây',
-      ),
-    ];
+    // Trigger async load on build
+    Future.microtask(() => loadCustomers());
+    return [];
   }
 
-  void updateCustomer(String originalPhone, CustomerDetailModel updated) {
-    state = [
-      for (final customer in state)
-        if (customer.phone == originalPhone) updated else customer
-    ];
+  Future<void> loadCustomers() async {
+    try {
+      final supabase = Supabase.instance.client;
+      // Fetch customers, their vehicles, and nested work_orders + invoices
+      final List<dynamic> customersData = await supabase
+          .from('customers')
+          .select('*, vehicles(*, work_orders(*, invoices(*)))');
+      
+      String formatCost(dynamic total) {
+        if (total == null) return '0đ';
+        final int val = (total is num) ? total.toInt() : int.tryParse(total.toString()) ?? 0;
+        if (val == 0) return '0đ';
+        final String valStr = val.toString();
+        final buffer = StringBuffer();
+        for (int i = 0; i < valStr.length; i++) {
+          if (i > 0 && (valStr.length - i) % 3 == 0) {
+            buffer.write('.');
+          }
+          buffer.write(valStr[i]);
+        }
+        buffer.write('đ');
+        return buffer.toString();
+      }
+
+      final List<CustomerDetailModel> loaded = [];
+      for (final c in customersData) {
+        final List<dynamic> vehiclesData = c['vehicles'] ?? [];
+        final List<VehicleModel> vehicles = [];
+        final List<ServiceHistoryModel> serviceHistoryList = [];
+
+        for (final v in vehiclesData) {
+          final List<dynamic> workOrdersData = v['work_orders'] ?? [];
+          final String plate = v['license_plate'] ?? '';
+          
+          bool isRepairing = false;
+          String statusLabel = 'Hoạt động tốt';
+          String status = 'done';
+          String lastServiceDate = 'Chưa bảo dưỡng';
+
+          for (final wo in workOrdersData) {
+            if (wo['status'] == 'dang_xu_ly') {
+              isRepairing = true;
+            }
+            
+            final List<dynamic> invoicesData = wo['invoices'] ?? [];
+            final dynamic invoice = invoicesData.isNotEmpty ? invoicesData.first : null;
+            final dynamic totalAmount = invoice != null ? invoice['total'] : 0;
+            
+            String dateStr = 'Chưa rõ';
+            if (wo['created_at'] != null) {
+              try {
+                final date = DateTime.parse(wo['created_at'].toString()).toLocal();
+                dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+              } catch (_) {}
+            }
+
+            if (dateStr != 'Chưa rõ') {
+              lastServiceDate = dateStr;
+            }
+
+            serviceHistoryList.add(
+              ServiceHistoryModel(
+                date: dateStr,
+                workOrder: 'WO-${wo['id']}',
+                cost: formatCost(totalAmount),
+                notes: wo['description'] ?? 'Không có ghi chú.',
+                type: wo['description']?.toString().toLowerCase().contains('bảo dưỡng') == true
+                    ? 'Bảo dưỡng định kỳ'
+                    : 'Sửa chữa hao mòn',
+                vehiclePlate: plate,
+              ),
+            );
+          }
+
+          if (isRepairing) {
+            statusLabel = 'Đang sửa chữa';
+            status = 'active';
+          }
+
+          vehicles.add(
+            VehicleModel(
+              name: v['model'] ?? 'Chưa rõ dòng xe',
+              plate: plate,
+              statusLabel: statusLabel,
+              status: status,
+              lastService: lastServiceDate,
+              engineCc: v['engine_cc'],
+              year: v['year'],
+              odometer: v['odometer'],
+            ),
+          );
+        }
+
+        loaded.add(
+          CustomerDetailModel(
+            name: c['full_name'] ?? 'Không tên',
+            phone: c['phone'] ?? '',
+            email: c['email'] ?? '',
+            address: 'Địa chỉ chưa cập nhật',
+            vehicles: vehicles,
+            serviceHistory: serviceHistoryList,
+            lastVisit: 'Chưa có thông tin',
+            userId: c['user_id']?.toString(),
+          ),
+        );
+      }
+      state = loaded;
+    } catch (e) {
+      print('Error loading customers: $e');
+    }
   }
 
-  void deleteCustomer(String phone) {
-    state = state.where((customer) => customer.phone != phone).toList();
+  Future<void> updateCustomer(String originalPhone, CustomerDetailModel updated) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase.from('customers').update({
+        'full_name': updated.name,
+        'phone': updated.phone,
+        'email': updated.email,
+      }).eq('phone', originalPhone);
+      await loadCustomers();
+    } catch (e) {
+      print('Error updating customer: $e');
+    }
   }
 
-  void addCustomer(CustomerDetailModel customer) {
-    state = [...state, customer];
+  Future<void> deleteCustomer(String phone) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase.from('customers').delete().eq('phone', phone);
+      await loadCustomers();
+    } catch (e) {
+      print('Error deleting customer: $e');
+    }
+  }
+
+  Future<void> addCustomer(CustomerDetailModel customer) async {
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase.from('customers').insert({
+        'full_name': customer.name,
+        'phone': customer.phone,
+        'email': customer.email,
+      });
+      await loadCustomers();
+    } catch (e) {
+      print('Error adding customer: $e');
+    }
+  }
+
+  Future<void> addVehicleToCustomer(String identifier, VehicleModel vehicle, {bool isUserId = false}) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final query = supabase.from('customers').select('id');
+      final customerData = isUserId
+          ? await query.eq('user_id', identifier).maybeSingle()
+          : await query.eq('phone', identifier).maybeSingle();
+      
+      if (customerData != null) {
+        final customerId = customerData['id'];
+        await supabase.from('vehicles').insert({
+          'customer_id': customerId,
+          'license_plate': vehicle.plate,
+          'model': vehicle.name,
+          'engine_cc': vehicle.engineCc,
+          'year': vehicle.year,
+          'odometer': vehicle.odometer,
+        });
+        await loadCustomers();
+      }
+    } catch (e) {
+      print('Error adding vehicle to customer: $e');
+    }
   }
 }
 

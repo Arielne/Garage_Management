@@ -8,10 +8,10 @@ import '../../widgets/app_scaffold.dart';
 import '../../widgets/invoice_card.dart';
 import '../../widgets/stage_timeline.dart';
 import '../../widgets/status_chip.dart';
-import '../../core/fake_data.dart';
 import '../../core/models.dart';
 import '../../core/app_routes.dart';
 import 'invoices/invoice_repository.dart';
+import 'progress/progress_repository.dart';
 import 'vehicle_list_screen.dart';
 import 'profile_screen.dart';
 import 'customer_notifications_screen.dart';
@@ -162,14 +162,109 @@ class _CustomerShellState extends State<CustomerShell> {
   }
 }
 
-// B2: Progress tracking tab integrating StageTimeline
-class _CustomerProgressTab extends StatelessWidget {
+// B2: Tiến độ sửa chữa — chỉ hiện xe của khách đang đăng nhập.
+// Dữ liệu lấy từ Supabase qua myProgressProvider (loading/error/data).
+class _CustomerProgressTab extends ConsumerWidget {
   const _CustomerProgressTab();
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progressAsync = ref.watch(myProgressProvider);
+
+    return progressAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.accent),
+      ),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.wifi_off_outlined,
+                size: 40,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Không tải được tiến độ.\nKiểm tra kết nối mạng rồi thử lại.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(myProgressProvider),
+                icon: const Icon(Icons.refresh, color: AppColors.accent),
+                label: Text(
+                  'Thử lại',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (progressList) {
+        if (progressList.isEmpty) {
+          return RefreshIndicator(
+            color: AppColors.accent,
+            onRefresh: () => ref.refresh(myProgressProvider.future),
+            child: ListView(
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                const Center(
+                  child: Icon(
+                    Icons.motorcycle_outlined,
+                    size: 56,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Hiện không có xe nào đang sửa',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.sora(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: AppColors.accent,
+          onRefresh: () => ref.refresh(myProgressProvider.future),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: progressList.length,
+            itemBuilder: (context, index) =>
+                _ProgressCard(progress: progressList[index]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({required this.progress});
+
+  final VehicleProgress progress;
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -180,23 +275,25 @@ class _CustomerProgressTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Yamaha Exciter 150 RC',
-                      style: GoogleFonts.sora(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Text(
+                        progress.vehicleName,
+                        style: GoogleFonts.sora(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                    const StatusChip(
-                      label: 'Đang làm',
-                      status: AppStatus.active,
+                    StatusChip(
+                      label: progress.statusLabel,
+                      status: _repairStageToAppStatus(progress.status),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Biển số: 59-X1 234.56',
+                  'Biển số: ${progress.plate}',
                   style: GoogleFonts.robotoMono(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -218,7 +315,7 @@ class _CustomerProgressTab extends StatelessWidget {
           const SizedBox(height: 12),
           AppCard(
             child: StageTimeline(
-              stages: demoRepairStages
+              stages: progress.stages
                   .map(
                     (stage) => TimelineStage(
                       title: stage.title,
@@ -246,8 +343,8 @@ class _CustomerProgressTab extends StatelessWidget {
   }
 }
 
-// B4: Invoices tracking tab integrating InvoiceCard
-// Dữ liệu lấy từ Supabase qua invoiceListProvider (loading/error/data).
+// B4: "Hóa đơn của tôi" — chỉ hóa đơn của khách đang đăng nhập.
+// Dữ liệu lấy từ Supabase qua myInvoiceListProvider (loading/error/data).
 class _CustomerInvoicesTab extends ConsumerWidget {
   const _CustomerInvoicesTab({this.statusFilter});
 
@@ -255,7 +352,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final invoicesAsync = ref.watch(invoiceListProvider);
+    final invoicesAsync = ref.watch(myInvoiceListProvider);
 
     return invoicesAsync.when(
       // Loading page: spinner màu accent trong lúc chờ Supabase.
@@ -284,7 +381,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               TextButton.icon(
-                onPressed: () => ref.invalidate(invoiceListProvider),
+                onPressed: () => ref.invalidate(myInvoiceListProvider),
                 icon: const Icon(Icons.refresh, color: AppColors.accent),
                 label: Text(
                   'Thử lại',
@@ -320,7 +417,7 @@ class _CustomerInvoicesTab extends ConsumerWidget {
 
         return RefreshIndicator(
           color: AppColors.accent,
-          onRefresh: () => ref.refresh(invoiceListProvider.future),
+          onRefresh: () => ref.refresh(myInvoiceListProvider.future),
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: invoices.length,

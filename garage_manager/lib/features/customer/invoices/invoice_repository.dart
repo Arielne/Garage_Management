@@ -11,13 +11,42 @@ class InvoiceRepository {
 
   final SupabaseClient _client;
 
-  /// Lấy danh sách hóa đơn từ view `v_invoice_list`.
+  /// Lấy TOÀN BỘ hóa đơn từ view `v_invoice_list`.
   /// View đã join sẵn tên khách + biển số nên chỉ cần 1 câu select.
-  /// Dùng cho: B4 (hóa đơn của khách), D9 (toàn bộ hóa đơn của quản lý).
+  /// Dùng cho: D9 (danh sách hóa đơn của quản lý), D1 (dashboard).
   Future<List<Invoice>> getInvoices() async {
     final rows = await _client
         .from('v_invoice_list')
         .select()
+        .order('created_at', ascending: false);
+
+    return rows.map<Invoice>(_invoiceFromRow).toList();
+  }
+
+  /// Lấy hóa đơn CỦA KHÁCH ĐANG ĐĂNG NHẬP (lọc theo customer_id).
+  /// Dùng cho: B4 (Hóa đơn của tôi) — khách chỉ thấy hóa đơn của mình.
+  Future<List<Invoice>> getMyInvoices() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return const [];
+
+    // Tìm id khách khớp tài khoản đang đăng nhập (theo user_id hoặc email).
+    final orParts = <String>['user_id.eq.${user.id}'];
+    final email = user.email;
+    if (email != null && email.isNotEmpty) {
+      orParts.add('email.eq.$email');
+    }
+    final customerRows = await _client
+        .from('customers')
+        .select('id')
+        .or(orParts.join(','))
+        .limit(1);
+    if (customerRows.isEmpty) return const [];
+    final customerId = customerRows.first['id'];
+
+    final rows = await _client
+        .from('v_invoice_list')
+        .select()
+        .eq('customer_id', customerId)
         .order('created_at', ascending: false);
 
     return rows.map<Invoice>(_invoiceFromRow).toList();
@@ -115,10 +144,15 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   return InvoiceRepository(Supabase.instance.client);
 });
 
-/// Danh sách hóa đơn dạng async — UI watch provider này là có sẵn
-/// 3 trạng thái: loading (hiện spinner) / error (hiện lỗi) / data (hiện list).
+/// Danh sách TOÀN BỘ hóa đơn (D9, D1) — có sẵn 3 trạng thái
+/// loading (spinner) / error (lỗi) / data (list) khi UI watch.
 final invoiceListProvider = FutureProvider<List<Invoice>>((ref) {
   return ref.watch(invoiceRepositoryProvider).getInvoices();
+});
+
+/// Hóa đơn của khách đang đăng nhập (B4 — "Hóa đơn của tôi").
+final myInvoiceListProvider = FutureProvider<List<Invoice>>((ref) {
+  return ref.watch(invoiceRepositoryProvider).getMyInvoices();
 });
 
 /// Chi tiết 1 hóa đơn kèm hạng mục (B4.1).
