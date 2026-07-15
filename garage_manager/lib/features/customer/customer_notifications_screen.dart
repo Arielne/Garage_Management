@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
@@ -51,6 +52,15 @@ class CustomerNotificationsScreen extends ConsumerWidget {
     required String time,
     required bool isUnread,
   }) {
+    String? voucherCode;
+    String displayBody = body;
+    const voucherPrefix = 'Mã Voucher: ';
+    if (body.contains(voucherPrefix)) {
+      final parts = body.split(voucherPrefix);
+      displayBody = parts[0].trim();
+      voucherCode = parts.length > 1 ? parts[1].trim() : null;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -102,11 +112,48 @@ class CustomerNotificationsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  body,
+                  displayBody,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isUnread ? AppColors.textPrimary : AppColors.textSecondary,
                       ),
                 ),
+                if (voucherCode != null && voucherCode.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSunken,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Mã: $voucherCode',
+                          style: const TextStyle(
+                            fontFamily: 'Roboto Mono',
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: voucherCode!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Đã sao chép mã: $voucherCode'),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          child: const Icon(Icons.copy, size: 18, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Text(
                   time,
