@@ -8,7 +8,7 @@ import 'inventory_import_export_dialog.dart';
 import 'inventory_report_dialog.dart';
 import 'inventory_repository.dart';
 
-// Provide the inventory items asynchronously
+
 final inventoryItemsProvider = FutureProvider.autoDispose<List<InventoryItem>>((ref) async {
   final repo = ref.watch(inventoryRepositoryProvider);
   return repo.getItems();
@@ -26,7 +26,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   String _selectedVehicle = 'Tất cả';
   bool _showLowStockOnly = false;
 
-  // Extract all unique vehicles for the filter based on loaded items
+
   List<String> _getVehicleList(List<InventoryItem> items) {
     final Set<String> vehicles = {'Tất cả'};
     for (var item in items) {
@@ -55,7 +55,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       builder: (ctx) => InventoryImportExportDialog(
         initialItem: item,
         onSuccess: () {
-          // Refresh data
+
           ref.invalidate(inventoryItemsProvider);
         },
       ),
@@ -81,7 +81,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
         return Column(
           children: [
-            // Low Stock Alert
+
             if (lowStockCount > 0)
               Container(
                 color: Colors.red.withOpacity(0.1),
@@ -114,7 +114,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 ),
               ),
 
-            // Search & Filter
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -209,7 +209,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               ),
             ),
 
-            // List
+
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
