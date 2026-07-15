@@ -104,17 +104,20 @@ class VehicleDetailScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       appBar: AppBar(
-        title: const Text('Chi tiết xe'),
-        backgroundColor: AppColors.surfaceDark,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Chi tiết xe',
+          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) {
               if (value == 'edit') {
                 _showEditVehicleDialog(context, ref, vehicle);
