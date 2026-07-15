@@ -14,6 +14,7 @@ import '../features/manager/manager_shell.dart';
 import '../features/technician/technician_shell.dart';
 import '../features/technician/job_detail_screen.dart';
 import 'models.dart';
+import 'fake_data.dart';
 
 class AppRoutes {
   const AppRoutes._();

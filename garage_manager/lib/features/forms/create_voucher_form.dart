@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/form_scaffold.dart';
@@ -37,6 +38,22 @@ class _CreateVoucherScreenState extends ConsumerState<CreateVoucherScreen> {
       setState(() => _isLoading = true);
 
       try {
+        final existing = await Supabase.instance.client
+            .from('vouchers')
+            .select('id')
+            .eq('code', _code)
+            .maybeSingle();
+
+        if (existing != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Mã voucher này đã tồn tại, vui lòng chọn mã khác!')),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+
         final value = num.tryParse(_valueText) ?? 0;
         final minOrder = num.tryParse(_minOrderText) ?? 0;
         
