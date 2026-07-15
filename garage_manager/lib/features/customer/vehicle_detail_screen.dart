@@ -399,7 +399,7 @@ class VehicleDetailScreen extends ConsumerWidget {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.surfaceCard,
           title: Text(
@@ -468,7 +468,7 @@ class VehicleDetailScreen extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
             ),
             TextButton(
@@ -487,7 +487,7 @@ class VehicleDetailScreen extends ConsumerWidget {
                     await ref.read(customerProvider.notifier).loadCustomers();
                     
                     if (context.mounted) {
-                      Navigator.pop(context);
+                      Navigator.pop(dialogContext);
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -512,7 +512,7 @@ class VehicleDetailScreen extends ConsumerWidget {
   void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.surfaceCard,
           title: Text(
@@ -522,7 +522,7 @@ class VehicleDetailScreen extends ConsumerWidget {
           content: Text('Bạn có chắc chắn muốn xóa xe biển số $vehiclePlate khỏi hệ thống không?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
             ),
             TextButton(
@@ -534,8 +534,8 @@ class VehicleDetailScreen extends ConsumerWidget {
                   await ref.read(customerProvider.notifier).loadCustomers();
                   
                   if (context.mounted) {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Close detail screen
+                    Navigator.pop(dialogContext); // Close dialog
+                    Navigator.pop(context);       // Close detail screen
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Đã xóa xe thành công!'),
