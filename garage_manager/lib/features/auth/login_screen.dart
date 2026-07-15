@@ -242,6 +242,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _buildFieldTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -275,9 +289,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     'Đăng nhập',
                     style: GoogleFonts.sora(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ),
@@ -293,108 +308,157 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Form Fields
-                Text(
-                  'Tài khoản (Số điện thoại / Email)',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                // Form Card Container
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.borderSubtle, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.015),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _identifierController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'Nhập số điện thoại hoặc email...',
-                    prefixIcon: Icon(
-                      Icons.person_outline,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Vui lòng nhập tài khoản đăng nhập';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                Text(
-                  'Mật khẩu',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập mật khẩu...',
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Account field
+                      _buildFieldTitle('Tài khoản (Số điện thoại / Email)'),
+                      TextFormField(
+                        controller: _identifierController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: 'Nhập số điện thoại hoặc email...',
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập tài khoản đăng nhập';
+                          }
+                          return null;
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mật khẩu';
-                    }
-                    if (value.length < 6) {
-                      return 'Mật khẩu phải dài ít nhất 6 ký tự';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
-                // Forgot Password link
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: Text(
-                      'Quên mật khẩu?',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      // Password field
+                      _buildFieldTitle('Mật khẩu'),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập mật khẩu...',
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Vui lòng nhập mật khẩu';
+                          }
+                          if (value.length < 6) {
+                            return 'Mật khẩu phải dài ít nhất 6 ký tự';
+                          }
+                          return null;
+                        },
                       ),
-                    ),
+                      const SizedBox(height: 8),
+
+                      // Forgot Password link
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: Text(
+                            'Quên mật khẩu?',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                 // Submit Button
-                PrimaryButton(
-                  label: _isLoading ? 'Đang đăng nhập...' : 'Đăng nhập',
-                  onPressed: _isLoading ? null : _handleLogin,
+                // Submit Button with premium warm gradient and soft glow shadow
+                Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6B00), Color(0xFFFF3D00)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF3D00).withOpacity(0.24),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Đăng nhập',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Or Divider
                 Row(
@@ -419,23 +483,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Google Login Button
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 50,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : _handleGoogleSignIn,
                     icon: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade600,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          )
+                        ],
                       ),
                       child: const Center(
                         child: Text(
                           'G',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
@@ -459,7 +530,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
                 // Register Link
                 Center(
