@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
 
 class JobDetailScreen extends StatefulWidget {
-  // Thay đổi kiểu dữ liệu nhận vào thành Map từ Supabase
   const JobDetailScreen({super.key, required this.jobData});
 
   final Map<String, dynamic> jobData;
@@ -26,7 +26,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     _fetchJobStages();
   }
 
-  // Kéo danh sách công đoạn từ bảng work_order_stages
+  // Lấy danh sách công đoạn từ bảng work_order_stages
   Future<void> _fetchJobStages() async {
     try {
       final workOrderId = widget.jobData['id'];
@@ -34,7 +34,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           .from('work_order_stages')
           .select()
           .eq('work_order_id', workOrderId)
-          .order('id', ascending: true); // Sắp xếp theo thứ tự công đoạn
+          .order('id', ascending: true);
 
       if (mounted) {
         setState(() {
@@ -48,10 +48,158 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     }
   }
 
-  // Cập nhật trạng thái công đoạn (done = true)
+  Future<void> _updateCurrentStage(String stageValue) async {
+    try {
+      await _supabase
+          .from('work_orders')
+          .update({'current_stage': stageValue})
+          .eq('id', widget.jobData['id']);
+
+      if (mounted) {
+        setState(() {
+          widget.jobData['current_stage'] = stageValue;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã cập nhật giai đoạn xe!'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+
+        if (stageValue == 'ban_giao') {
+          await _checkAndFinalizeInvoice();
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi cập nhật giai đoạn: $e');
+    }
+  }
+
+  Future<void> _checkAndFinalizeInvoice() async {
+    await _fetchJobStages();
+
+    final allDone = _stages.every((s) => s['done'] == true);
+    if (!allDone) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lưu ý: Vẫn còn công đoạn chưa tích hoàn thành!'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final workOrderId = widget.jobData['id'];
+
+      final servicesRes = await _supabase
+          .from('work_order_services')
+          .select('labor_price')
+          .eq('work_order_id', workOrderId);
+
+      num totalLabor = 0;
+      for (final s in servicesRes) {
+        totalLabor += (s['labor_price'] ?? 0) as num;
+      }
+
+      final partsRes = await _supabase
+          .from('work_order_parts')
+          .select('quantity, unit_price')
+          .eq('work_order_id', workOrderId);
+
+      num totalParts = 0;
+      for (final p in partsRes) {
+        final qty = (p['quantity'] ?? 1) as num;
+        final price = (p['unit_price'] ?? 0) as num;
+        totalParts += (qty * price);
+      }
+
+      final num subtotal = totalLabor + totalParts;
+      final num tax = (subtotal * 0.08).round();
+      final num totalAmount = subtotal + tax;
+
+      await _supabase
+          .from('work_orders')
+          .update({'status': 'hoan_thanh'})
+          .eq('id', workOrderId);
+
+      if (mounted) {
+        setState(() {
+          widget.jobData['status'] = 'hoan_thanh';
+        });
+      }
+
+      final existingInvoice = await _supabase
+          .from('invoices')
+          .select('id')
+          .eq('work_order_id', workOrderId)
+          .maybeSingle();
+
+      if (existingInvoice == null) {
+        final insertResponse = await _supabase
+            .from('invoices')
+            .insert({
+              'work_order_id': workOrderId,
+              'code':
+                  'HD-${DateFormat('yyyyMMdd').format(DateTime.now())}-$workOrderId',
+              'subtotal': subtotal,
+              'tax': tax,
+              'discount_amount': 0,
+              'total': totalAmount,
+              'status': 'dang_xu_ly',
+            })
+            .select('id');
+
+        if (insertResponse.isNotEmpty) {
+          final insertedId = insertResponse[0]['id'];
+          await _supabase
+              .from('invoices')
+              .update({'payment_code': 'GARAHD$insertedId'})
+              .eq('id', insertedId);
+        }
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Hoàn tất & Xuất hóa đơn'),
+              content: Text(
+                'Hệ thống đã tự động tính toán:\n'
+                '- Tiền dịch vụ: ${totalLabor.toInt()}đ\n'
+                '- Tiền phụ tùng: ${totalParts.toInt()}đ\n'
+                '- Thuế VAT (8%): ${tax.toInt()}đ\n\n'
+                'Tổng cộng: ${totalAmount.toInt()}đ\n\n'
+                'Hóa đơn đã được tạo và sẵn sàng thanh toán.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Đóng'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi chốt hóa đơn: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi không xuất được hóa đơn: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _completeStage(int stageId) async {
     try {
-      // 1. Cập nhật công đoạn
       await _supabase
           .from('work_order_stages')
           .update({
@@ -60,86 +208,24 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           })
           .eq('id', stageId);
 
-      // 2. Kiểm tra xem đây có phải công đoạn cuối cùng chưa hoàn thành không
-      final remainingStages = _stages
-          .where((s) => s['id'] != stageId && s['done'] != true)
-          .toList();
+      // 2. Tải lại dữ liệu mới nhất
+      await _fetchJobStages();
 
-      if (remainingStages.isEmpty) {
-        final workOrderId = widget.jobData['id'];
+      // 3. Kiểm tra xem đã xong hết các công đoạn chi tiết chưa
+      final allDone = _stages.every((s) => s['done'] == true);
 
-        // Nếu đã xong hết các công đoạn, tự động cập nhật status của work_order thành 'hoan_thanh'
-        await _supabase
-            .from('work_orders')
-            .update({'status': 'hoan_thanh'})
-            .eq('id', workOrderId);
-
-        // Lấy danh sách dịch vụ và phụ tùng để tính tổng tiền
-        final services = await _supabase
-            .from('work_order_services')
-            .select('labor_price')
-            .eq('work_order_id', workOrderId);
-
-        final parts = await _supabase
-            .from('work_order_parts')
-            .select('quantity, unit_price')
-            .eq('work_order_id', workOrderId);
-
-        num totalLabor = 0;
-        for (final s in services) {
-          totalLabor += (s['labor_price'] ?? 0) as num;
-        }
-
-        num totalParts = 0;
-        for (final p in parts) {
-          final qty = (p['quantity'] ?? 1) as num;
-          final price = (p['unit_price'] ?? 0) as num;
-          totalParts += (qty * price);
-        }
-
-        final num subtotal = totalLabor + totalParts;
-        final num tax = (subtotal * 0.08).round();
-        final num total = subtotal + tax;
-
-        // Chặn trùng: một phiếu chỉ một hóa đơn
-        final existing = await _supabase
-            .from('invoices')
-            .select('id')
-            .eq('work_order_id', workOrderId)
-            .maybeSingle();
-
-        if (existing == null) {
-          final inserted = await _supabase.from('invoices').insert({
-            'work_order_id': workOrderId,
-            'subtotal': subtotal,
-            'tax': tax,
-            'discount_amount': 0,
-            'total': total,
-            'status': 'chua_thanh_toan',
-          }).select('id').single();
-
-          // payment_code cho SePay đối soát
-          await _supabase
-              .from('invoices')
-              .update({'payment_code': 'GARAHD${inserted['id']}'})
-              .eq('id', inserted['id']);
-        }
-      }
-
-      // Tải lại danh sách sau khi cập nhật
-      _fetchJobStages();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              remainingStages.isEmpty
-                  ? 'Đã hoàn thành toàn bộ công đoạn và cập nhật trạng thái phiếu!'
-                  : 'Đã hoàn thành công đoạn!',
+      if (allDone) {
+        // Tự động chuyển Giai đoạn chính sang 'ban_giao' và Chốt hóa đơn
+        await _updateCurrentStage('ban_giao');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã hoàn thành công đoạn!'),
+              backgroundColor: Colors.green,
             ),
-            backgroundColor: Colors.green,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -229,6 +315,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                   ),
                                 ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Giai đoạn hiện tại:',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              _buildStageSelector(),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -355,6 +456,48 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildStageSelector() {
+    final currentStage = widget.jobData['current_stage'] ?? 'tiep_nhan';
+    final stages = {
+      'tiep_nhan': 'Tiếp nhận',
+      'thao_lap': 'Tháo lắp',
+      'thay_do': 'Thay đồ',
+      'chay_thu': 'Chạy thử',
+      'ban_giao': 'Bàn giao',
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.bgApp,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentStage,
+          icon: const Icon(Icons.arrow_drop_down, color: AppColors.accent),
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.accent,
+          ),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              _updateCurrentStage(newValue);
+            }
+          },
+          items: stages.entries.map((entry) {
+            return DropdownMenuItem<String>(
+              value: entry.key,
+              child: Text(entry.value),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
