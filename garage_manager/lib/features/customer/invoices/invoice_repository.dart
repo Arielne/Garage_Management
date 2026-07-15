@@ -15,12 +15,54 @@ class InvoiceRepository {
   /// View đã join sẵn tên khách + biển số nên chỉ cần 1 câu select.
   /// Dùng cho: B4 (hóa đơn của khách), D9 (toàn bộ hóa đơn của quản lý).
   Future<List<Invoice>> getInvoices() async {
-    final rows = await _client
-        .from('v_invoice_list')
-        .select()
-        .order('created_at', ascending: false);
+    final user = _client.auth.currentUser;
+    if (user == null) return [];
 
-    return rows.map<Invoice>(_invoiceFromRow).toList();
+    // Check user role
+    final profile = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    final role = profile?['role'] ?? 'customer';
+
+    if (role == 'customer') {
+      // 1. Get customer ID
+      final customerRow = await _client
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (customerRow == null) return [];
+      final customerId = customerRow['id'];
+
+      // 2. Get license plates
+      final vehicleRows = await _client
+          .from('vehicles')
+          .select('license_plate')
+          .eq('customer_id', customerId);
+
+      final plates = vehicleRows.map<String>((v) => v['license_plate'] as String).toList();
+      if (plates.isEmpty) return [];
+
+      final rows = await _client
+          .from('v_invoice_list')
+          .select()
+          .inFilter('license_plate', plates)
+          .order('created_at', ascending: false);
+
+      return rows.map<Invoice>(_invoiceFromRow).toList();
+    } else {
+      // Manager/Admin see all invoices
+      final rows = await _client
+          .from('v_invoice_list')
+          .select()
+          .order('created_at', ascending: false);
+
+      return rows.map<Invoice>(_invoiceFromRow).toList();
+    }
   }
 
   /// Lấy các dòng hạng mục (dịch vụ + phụ tùng) của MỘT hóa đơn
