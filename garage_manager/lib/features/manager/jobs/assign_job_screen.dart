@@ -111,8 +111,15 @@ class _AssignJobScreenState extends State<AssignJobScreen> {
 
         await _supabase.from('work_order_parts').insert(partsToInsert);
 
-        // Trừ kho cho từng món
+        // Trừ kho và ghi log cho từng món
         for (var part in _selectedParts) {
+          await _supabase.from('stock_transactions').insert({
+            'part_id': part['id'],
+            'type': 'xuat',
+            'quantity': 1, // Tạm thời mặc định mỗi loại 1 cái
+            'note': 'Lễ tân giao phụ tùng cho phiếu PH-$workOrderId',
+          });
+
           await _supabase
               .from('parts')
               .update({'stock_qty': part['stock_qty'] - 1})
