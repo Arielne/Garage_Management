@@ -52,6 +52,7 @@ class InventoryRepository {
           stockQuantity: stockQty,
           minStockWarning: minStock,
           priceText: priceText,
+          rawPrice: price,
           compatibleVehicles: compatibleVehicles,
         );
       }).toList();
@@ -125,6 +126,40 @@ class InventoryRepository {
       return true;
     } catch (e) {
       print('Error creating transaction: $e');
+      return false;
+    }
+  }
+
+  Future<bool> exportForWorkOrder(InventoryItem item, int quantity, int workOrderId) async {
+    final partId = int.tryParse(item.id) ?? 0;
+
+    try {
+      // 1. Thêm record vào work_order_parts
+      await _supabase.from('work_order_parts').insert({
+        'work_order_id': workOrderId,
+        'part_id': partId,
+        'name': item.name,
+        'quantity': quantity,
+        'unit_price': item.rawPrice,
+      });
+
+      // 2. Ghi log vào stock_transactions
+      await _supabase.from('stock_transactions').insert({
+        'part_id': partId,
+        'type': 'xuat',
+        'quantity': quantity,
+        'note': 'Xuất cho phiếu sửa chữa PH-$workOrderId',
+      });
+
+      // 3. Trừ tồn kho
+      final newQuantity = item.stockQuantity - quantity;
+      await _supabase.from('parts').update({
+        'stock_qty': newQuantity
+      }).eq('id', partId);
+
+      return true;
+    } catch (e) {
+      print('Error exportForWorkOrder: $e');
       return false;
     }
   }

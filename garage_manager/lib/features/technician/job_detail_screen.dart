@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../theme/app_colors.dart';
 import '../../widgets/app_card.dart';
+import '../manager/inventory/select_part_for_work_order_dialog.dart';
 
 class JobDetailScreen extends StatefulWidget {
   const JobDetailScreen({super.key, required this.jobData});
@@ -398,20 +399,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(
-                            Icons.checklist_rounded,
-                            color: AppColors.textPrimary,
-                            size: 20,
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.checklist_rounded,
+                                color: AppColors.textPrimary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'CÔNG ĐOẠN SỬA CHỮA',
+                                style: GoogleFonts.sora(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'CÔNG ĐOẠN SỬA CHỮA',
-                            style: GoogleFonts.sora(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                              color: AppColors.textPrimary,
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => SelectPartForWorkOrderDialog(
+                                  workOrderId: widget.jobData['id'],
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.build, size: 16),
+                            label: const Text('Thêm PT'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accentSoft,
+                              foregroundColor: AppColors.accent,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                           ),
                         ],

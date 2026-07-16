@@ -120,6 +120,7 @@ const demoInventoryItems = [
     stockQuantity: 45,
     minStockWarning: 10,
     priceText: '350.000đ',
+    rawPrice: 350000,
     compatibleVehicles: ['Exciter 150', 'Winner X', 'Sirius FI'],
   ),
   InventoryItem(
@@ -130,6 +131,7 @@ const demoInventoryItems = [
     stockQuantity: 4,
     minStockWarning: 5,
     priceText: '1.200.000đ',
+    rawPrice: 1200000,
     compatibleVehicles: ['Exciter 150', 'Winner 150'],
   ),
   InventoryItem(
@@ -140,6 +142,7 @@ const demoInventoryItems = [
     stockQuantity: 12,
     minStockWarning: 15,
     priceText: '950.000đ',
+    rawPrice: 950000,
     compatibleVehicles: ['Exciter 150', 'Winner X', 'Sonic 150R', 'Raider 150'],
   ),
   InventoryItem(
@@ -148,8 +151,9 @@ const demoInventoryItems = [
     sku: 'KIT-62ZZ-EX150',
     category: InventoryCategory.kit,
     stockQuantity: 2,
-    minStockWarning: 3,
-    priceText: '4.500.000đ',
+    minStockWarning: 5,
+    priceText: '8.500.000đ',
+    rawPrice: 8500000,
     compatibleVehicles: ['Exciter 150'],
   ),
 ];

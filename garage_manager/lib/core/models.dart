@@ -115,6 +115,7 @@ class InventoryItem {
     required this.stockQuantity,
     required this.minStockWarning,
     required this.priceText,
+    required this.rawPrice,
     required this.compatibleVehicles,
   });
 
@@ -125,6 +126,7 @@ class InventoryItem {
   final int stockQuantity;
   final int minStockWarning;
   final String priceText;
+  final num rawPrice;
   final List<String> compatibleVehicles;
 
   bool get isLowStock => stockQuantity <= minStockWarning;
