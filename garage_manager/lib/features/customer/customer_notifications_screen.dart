@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/list_scaffold.dart';
 import '../manager/promotions/notification_repository.dart';
+
+final usedVoucherCodesProvider = FutureProvider<Set<String>>((ref) async {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+  if (user == null) return {};
+  
+  // Get all used voucher IDs for this user
+  final usedRows = await supabase.from('used_vouchers').select('voucher_id').eq('user_id', user.id);
+  if (usedRows.isEmpty) return {};
+  
+  final List<dynamic> voucherIds = usedRows.map((r) => r['voucher_id']).toList();
+  if (voucherIds.isEmpty) return {};
+
+  // Get the codes for these vouchers
+  final voucherRows = await supabase.from('vouchers').select('code').inFilter('id', voucherIds);
+  return voucherRows.map((r) => r['code'].toString()).toSet();
+});
 
 class CustomerNotificationsScreen extends ConsumerWidget {
   const CustomerNotificationsScreen({super.key});
@@ -12,6 +30,8 @@ class CustomerNotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationListAsync = ref.watch(notificationListProvider);
+    final usedCodesAsync = ref.watch(usedVoucherCodesProvider);
+    final Set<String> usedCodes = usedCodesAsync.value ?? {};
 
     return AppScaffold(
       title: 'Thông báo',
@@ -21,7 +41,10 @@ class CustomerNotificationsScreen extends ConsumerWidget {
             return const Center(child: Text('Chưa có thông báo nào.'));
           }
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(notificationListProvider),
+            onRefresh: () async {
+              ref.invalidate(usedVoucherCodesProvider);
+              return ref.refresh(notificationListProvider);
+            },
             child: ListScaffold(
               children: notifications.map((notif) {
                 return _buildNotificationItem(
@@ -32,6 +55,7 @@ class CustomerNotificationsScreen extends ConsumerWidget {
                   body: notif.message,
                   time: notif.createdAtText,
                   isUnread: !notif.isRead,
+                  usedCodes: usedCodes,
                 );
               }).toList(),
             ),
@@ -51,6 +75,7 @@ class CustomerNotificationsScreen extends ConsumerWidget {
     required String body,
     required String time,
     required bool isUnread,
+    required Set<String> usedCodes,
   }) {
     String? voucherCode;
     String displayBody = body;
@@ -60,6 +85,8 @@ class CustomerNotificationsScreen extends ConsumerWidget {
       displayBody = parts[0].trim();
       voucherCode = parts.length > 1 ? parts[1].trim() : null;
     }
+
+    final isUsed = voucherCode != null && usedCodes.contains(voucherCode);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -122,7 +149,7 @@ class CustomerNotificationsScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceSunken,
+                      color: isUsed ? AppColors.bgApp : AppColors.surfaceSunken,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.borderSubtle),
                     ),
@@ -130,26 +157,29 @@ class CustomerNotificationsScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Mã: $voucherCode',
-                          style: const TextStyle(
-                            fontFamily: 'Roboto Mono',
+                          isUsed ? 'Mã đã sử dụng' : 'Mã: $voucherCode',
+                          style: TextStyle(
+                            fontFamily: isUsed ? null : 'Roboto Mono',
                             fontWeight: FontWeight.w600,
-                            color: AppColors.accent,
+                            color: isUsed ? AppColors.textTertiary : AppColors.accent,
+                            decoration: isUsed ? TextDecoration.lineThrough : null,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        InkWell(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: voucherCode!));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Đã sao chép mã: $voucherCode'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          child: const Icon(Icons.copy, size: 18, color: AppColors.textSecondary),
-                        ),
+                        if (!isUsed) ...[
+                          const SizedBox(width: 12),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: voucherCode!));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Đã sao chép mã: $voucherCode'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: const Icon(Icons.copy, size: 18, color: AppColors.textSecondary),
+                          ),
+                        ],
                       ],
                     ),
                   ),
