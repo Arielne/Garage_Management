@@ -36,6 +36,13 @@ class VehicleListScreen extends ConsumerWidget {
     
     // Find the current logged-in customer matching by user_id or email
     final currentUser = Supabase.instance.client.auth.currentUser;
+    
+    print('DEBUG: customers count = ${customers.length}');
+    for (var c in customers) {
+      print('DEBUG: customer email = ${c.email}, userId = ${c.userId}, vehicles count = ${c.vehicles.length}');
+    }
+    print('DEBUG: logged-in user email = ${currentUser?.email}, id = ${currentUser?.id}');
+
     final customer = customers.firstWhere(
       (c) => c.userId == currentUser?.id || c.email == currentUser?.email,
       orElse: () => CustomerDetailModel(
