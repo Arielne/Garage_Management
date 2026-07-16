@@ -124,14 +124,12 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
   }
 
   Future<void> loadCustomers() async {
-    print('DEBUG: loadCustomers() started');
     try {
       final supabase = Supabase.instance.client;
       // Fetch customers, their vehicles, and nested work_orders + invoices
       final List<dynamic> customersData = await supabase
           .from('customers')
           .select('*, vehicles(*, work_orders(*, invoices(*)))');
-      print('DEBUG: loadCustomers() query succeeded, returned ${customersData.length} records');
       
       String formatCost(dynamic total) {
         if (total == null) return '0đ';
@@ -237,10 +235,8 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
         );
       }
       state = loaded;
-      print('DEBUG: loadCustomers() state updated to loaded (length = ${loaded.length})');
-    } catch (e, stack) {
-      print('DEBUG_ERROR: loadCustomers failed: $e');
-      print('DEBUG_ERROR: stack: $stack');
+    } catch (e) {
+      print('Error loading customers: $e');
     }
   }
 
