@@ -194,7 +194,11 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
 /// không báo xuống dưới → không nạp lại thừa.
 final authUserIdProvider = Provider<String?>((ref) {
   final client = Supabase.instance.client;
-  final sub = client.auth.onAuthStateChange.listen((_) => ref.invalidateSelf());
+  final sub = client.auth.onAuthStateChange.listen((_) {
+    Future.microtask(() {
+      ref.invalidateSelf();
+    });
+  });
   ref.onDispose(sub.cancel);
   return client.auth.currentUser?.id;
 });

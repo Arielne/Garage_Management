@@ -167,7 +167,10 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
               isRepairing = true;
             }
             
-            final List<dynamic> invoicesData = wo['invoices'] ?? [];
+            final dynamic rawInvoices = wo['invoices'];
+            final List<dynamic> invoicesData = rawInvoices is List
+                ? rawInvoices
+                : (rawInvoices is Map ? [rawInvoices] : []);
             final dynamic invoice = invoicesData.isNotEmpty ? invoicesData.first : null;
             final dynamic totalAmount = invoice != null ? invoice['total'] : 0;
             
