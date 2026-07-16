@@ -114,11 +114,16 @@ class AppRoutes {
           settings: settings,
         );
       case customerPayment:
-        final invoice = settings.arguments is Invoice
-            ? settings.arguments as Invoice
-            : demoInvoices.first;
+        if (settings.arguments is! Invoice) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Không tìm thấy thông tin hóa đơn thanh toán.')),
+            ),
+            settings: settings,
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => CustomerPaymentScreen(invoice: invoice),
+          builder: (_) => CustomerPaymentScreen(invoice: settings.arguments as Invoice),
           settings: settings,
         );
       case customerDetail:
