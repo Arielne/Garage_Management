@@ -26,7 +26,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     _fetchJobStages();
   }
 
-  // Lấy danh sách công đoạn từ bảng work_order_stages
   Future<void> _fetchJobStages() async {
     try {
       final workOrderId = widget.jobData['id'];
@@ -49,6 +48,22 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Future<void> _updateCurrentStage(String stageValue) async {
+    if (stageValue == 'ban_giao') {
+      await _fetchJobStages();
+      final allDone = _stages.every((s) => s['done'] == true);
+      if (!allDone) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không thể Bàn giao! Vẫn còn công đoạn chưa xong.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {});
+        }
+        return;
+      }
+    }
     try {
       await _supabase
           .from('work_orders')
@@ -60,12 +75,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           widget.jobData['current_stage'] = stageValue;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã cập nhật giai đoạn xe!'),
-            backgroundColor: Colors.blue,
-          ),
-        );
+        if (stageValue != 'ban_giao') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã cập nhật giai đoạn xe!'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
 
         if (stageValue == 'ban_giao') {
           await _checkAndFinalizeInvoice();
@@ -107,7 +124,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
       final partsRes = await _supabase
           .from('work_order_parts')
-          .select('quantity, unit_price')
+          .select('part_id, quantity, unit_price')
           .eq('work_order_id', workOrderId);
 
       num totalParts = 0;
@@ -115,6 +132,32 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         final qty = (p['quantity'] ?? 1) as num;
         final price = (p['unit_price'] ?? 0) as num;
         totalParts += (qty * price);
+
+        if (p['part_id'] != null) {
+          try {
+            await _supabase.from('stock_transactions').insert({
+              'part_id': p['part_id'],
+              'type': 'xuat',
+              'quantity': qty,
+              'note': 'Tự động xuất kho cho phiếu PH-$workOrderId',
+              'date': DateTime.now().toIso8601String(),
+            });
+            final currentPart = await _supabase
+                .from('parts')
+                .select('stock_qty')
+                .eq('id', p['part_id'])
+                .single();
+
+            final currentStock = (currentPart['stock_qty'] ?? 0) as num;
+
+            await _supabase
+                .from('parts')
+                .update({'stock_qty': currentStock - qty})
+                .eq('id', p['part_id']);
+          } catch (e) {
+            debugPrint('Lỗi ghi sổ kho: $e');
+          }
+        }
       }
 
       final num subtotal = totalLabor + totalParts;
@@ -123,12 +166,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
       await _supabase
           .from('work_orders')
-          .update({'status': 'hoan_thanh'})
+          .update({'status': 'da_ban_giao'})
           .eq('id', workOrderId);
 
       if (mounted) {
         setState(() {
-          widget.jobData['status'] = 'hoan_thanh';
+          widget.jobData['status'] = 'da_ban_giao';
         });
       }
 
@@ -149,7 +192,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               'tax': tax,
               'discount_amount': 0,
               'total': totalAmount,
-              'status': 'dang_xu_ly',
+              'status': 'chua_thanh_toan',
             })
             .select('id');
 
@@ -208,14 +251,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           })
           .eq('id', stageId);
 
-      // 2. Tải lại dữ liệu mới nhất
       await _fetchJobStages();
 
-      // 3. Kiểm tra xem đã xong hết các công đoạn chi tiết chưa
       final allDone = _stages.every((s) => s['done'] == true);
 
       if (allDone) {
-        // Tự động chuyển Giai đoạn chính sang 'ban_giao' và Chốt hóa đơn
         await _updateCurrentStage('ban_giao');
       } else {
         if (mounted) {
@@ -238,7 +278,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Trích xuất thông tin cơ bản từ jobData truyền sang
     final vehicleModel = widget.jobData['vehicles']?['model'] ?? 'Xe chưa rõ';
     final vehiclePlate =
         widget.jobData['vehicles']?['license_plate'] ?? 'Chưa rõ biển số';

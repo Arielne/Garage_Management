@@ -8,8 +8,9 @@ import 'inventory_import_export_dialog.dart';
 import 'inventory_report_dialog.dart';
 import 'inventory_repository.dart';
 
-
-final inventoryItemsProvider = FutureProvider.autoDispose<List<InventoryItem>>((ref) async {
+final inventoryItemsProvider = FutureProvider.autoDispose<List<InventoryItem>>((
+  ref,
+) async {
   final repo = ref.watch(inventoryRepositoryProvider);
   return repo.getItems();
 });
@@ -26,7 +27,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   String _selectedVehicle = 'Tất cả';
   bool _showLowStockOnly = false;
 
-
   List<String> _getVehicleList(List<InventoryItem> items) {
     final Set<String> vehicles = {'Tất cả'};
     for (var item in items) {
@@ -38,9 +38,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   List<InventoryItem> _getFilteredItems(List<InventoryItem> items) {
     return items.where((item) {
       if (_showLowStockOnly && !item.isLowStock) return false;
-      final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                            item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesVehicle = _selectedVehicle == 'Tất cả' || item.compatibleVehicles.contains(_selectedVehicle);
+      final matchesSearch =
+          item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.sku.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesVehicle =
+          _selectedVehicle == 'Tất cả' ||
+          item.compatibleVehicles.contains(_selectedVehicle);
       return matchesSearch && matchesVehicle;
     }).toList();
   }
@@ -55,7 +58,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       builder: (ctx) => InventoryImportExportDialog(
         initialItem: item,
         onSuccess: () {
-
           ref.invalidate(inventoryItemsProvider);
         },
       ),
@@ -68,7 +70,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     return asyncItems.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(child: Text('Đã xảy ra lỗi: $error')),
+      error: (error, stackTrace) =>
+          Center(child: Text('Đã xảy ra lỗi: $error')),
       data: (items) {
         final filteredItems = _getFilteredItems(items);
         final lowStockCount = _getLowStockCount(items);
@@ -81,11 +84,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
         return Column(
           children: [
-
             if (lowStockCount > 0)
               Container(
                 color: Colors.red.withOpacity(0.1),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber_rounded, color: Colors.red),
@@ -107,13 +112,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       },
                       child: Text(
                         _showLowStockOnly ? 'Bỏ lọc' : 'Xem ngay',
-                        style: GoogleFonts.inter(color: Colors.red[700], fontWeight: FontWeight.bold),
+                        style: GoogleFonts.inter(
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-
 
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -129,9 +136,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: AppColors.borderSubtle),
+                              borderSide: const BorderSide(
+                                color: AppColors.borderSubtle,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                            ),
                           ),
                           onChanged: (value) {
                             setState(() {
@@ -153,10 +164,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             child: DropdownButton<String>(
                               isExpanded: true,
                               value: _selectedVehicle,
-                              items: vehicleList.map((v) => DropdownMenuItem(
-                                value: v,
-                                child: Text(v, overflow: TextOverflow.ellipsis),
-                              )).toList(),
+                              items: vehicleList
+                                  .map(
+                                    (v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(
+                                        v,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                               onChanged: (value) {
                                 setState(() {
                                   _selectedVehicle = value ?? 'Tất cả';
@@ -180,12 +198,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             );
                           },
                           icon: const Icon(Icons.history),
-                          label: const Text('Lịch sử'),
+                          label: const FittedBox(child: Text('Lịch sử')),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.accent,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: const BorderSide(color: AppColors.accent),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
@@ -194,12 +214,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         child: ElevatedButton.icon(
                           onPressed: () => _showImportExportDialog(context),
                           icon: const Icon(Icons.add_box_outlined),
-                          label: const Text('Nhập / Xuất'),
+                          label: const FittedBox(child: Text('Nhập / Xuất')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.accent,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
@@ -209,16 +231,19 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               ),
             ),
 
-
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(inventoryItemsProvider);
                 },
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: filteredItems.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = filteredItems[index];
                     return _buildInventoryCard(item);
@@ -263,7 +288,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  item.category == InventoryCategory.kit ? Icons.build_circle : Icons.handyman,
+                  item.category == InventoryCategory.kit
+                      ? Icons.build_circle
+                      : Icons.handyman,
                   color: AppColors.accent,
                 ),
               ),
@@ -304,15 +331,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: item.isLowStock ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                      color: item.isLowStock
+                          ? Colors.red.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       'Tồn kho: ${item.stockQuantity}',
                       style: GoogleFonts.inter(
-                        color: item.isLowStock ? Colors.red[700] : Colors.green[700],
+                        color: item.isLowStock
+                            ? Colors.red[700]
+                            : Colors.green[700],
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -342,7 +376,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 onPressed: () => _showImportExportDialog(context, item),
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
