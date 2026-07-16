@@ -167,8 +167,13 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
               isRepairing = true;
             }
             
-            final List<dynamic> invoicesData = wo['invoices'] ?? [];
-            final dynamic invoice = invoicesData.isNotEmpty ? invoicesData.first : null;
+            final dynamic invoicesRaw = wo['invoices'];
+            dynamic invoice;
+            if (invoicesRaw is List && invoicesRaw.isNotEmpty) {
+              invoice = invoicesRaw.first;
+            } else if (invoicesRaw is Map) {
+              invoice = invoicesRaw;
+            }
             final dynamic totalAmount = invoice != null ? invoice['total'] : 0;
             
             String dateStr = 'Chưa rõ';

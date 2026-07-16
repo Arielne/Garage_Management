@@ -22,7 +22,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
   VoucherModel? _appliedVoucher;
   int _discountAmount = 0;
   bool _showQR = false;
-  String _paymentMethod = 'sepay';
+  String _paymentMethod = 'chuyen_khoan';
 
   @override
   void dispose() {
@@ -311,7 +311,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
                       Expanded(
                         child: RadioListTile<String>(
                           title: Text('Chuyển khoản QR', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500)),
-                          value: 'sepay',
+                          value: 'chuyen_khoan',
                           groupValue: _paymentMethod,
                           contentPadding: EdgeInsets.zero,
                           activeColor: AppColors.accent,
@@ -345,7 +345,7 @@ class _CustomerPaymentScreenState extends State<CustomerPaymentScreen> {
             ),
             const SizedBox(height: 24),
 
-            if (_paymentMethod == 'sepay') ...[
+            if (_paymentMethod == 'chuyen_khoan') ...[
               if (!_showQR)
                 SizedBox(
                   width: double.infinity,
