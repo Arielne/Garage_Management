@@ -278,7 +278,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Trích xuất thông tin cơ bản từ jobData truyền sang
     final vehicleModel = widget.jobData['vehicles']?['model'] ?? 'Xe chưa rõ';
     final vehiclePlate =
         widget.jobData['vehicles']?['license_plate'] ?? 'Chưa rõ biển số';
