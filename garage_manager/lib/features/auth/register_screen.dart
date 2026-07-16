@@ -17,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -40,10 +42,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final name = _nameController.text.trim();
       final phone = _phoneController.text.trim();
+      final email = _emailController.text.trim().toLowerCase();
       final password = _passwordController.text;
-      
-      // Auto generate email format from phone for Supabase Auth
-      final email = '$phone@gmail.com';
 
       try {
         final supabase = Supabase.instance.client;
@@ -94,8 +94,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (!mounted) return;
 
         String errorMsg = e.toString();
-        if (errorMsg.contains('User already registered')) {
-          errorMsg = 'Số điện thoại này đã được đăng ký tài khoản trước đó!';
+        if (errorMsg.contains('User already registered') || errorMsg.contains('already exists')) {
+          errorMsg = 'Email hoặc Số điện thoại này đã được đăng ký tài khoản trước đó!';
         } else {
           errorMsg = 'Đăng ký thất bại: $errorMsg';
         }
@@ -116,17 +116,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+
+  Widget _buildFieldTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       appBar: AppBar(
-        title: const Text('Đăng ký'),
+        title: const Text(
+          'Đăng nhập',
+          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -141,9 +159,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text(
                   'Tạo tài khoản khách hàng',
                   style: GoogleFonts.sora(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -152,154 +171,209 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: AppColors.textSecondary,
+                    height: 1.4,
                   ),
                 ),
                 const SizedBox(height: 28),
 
-                // Full Name
-                Text(
-                  'Họ và tên',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                // Form Card Container
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.borderSubtle, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.015),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _nameController,
-                  keyboardType: TextInputType.name,
-                  decoration: const InputDecoration(
-                    hintText: 'Nhập họ và tên...',
-                    prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Vui lòng nhập họ và tên';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Phone Number
-                Text(
-                  'Số điện thoại',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    hintText: 'Nhập số điện thoại...',
-                    prefixIcon: Icon(Icons.phone_android_outlined, color: AppColors.textSecondary, size: 20),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Vui lòng nhập số điện thoại';
-                    }
-                    final phoneRegex = RegExp(r'^(0[35789])+([0-9]{8})$');
-                    if (!phoneRegex.hasMatch(value.trim())) {
-                      return 'Số điện thoại không hợp lệ (ví dụ: 0987654321)';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Password
-                Text(
-                  'Mật khẩu',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập mật khẩu...',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Full Name
+                      _buildFieldTitle('Họ và tên'),
+                      TextFormField(
+                        controller: _nameController,
+                        keyboardType: TextInputType.name,
+                        decoration: const InputDecoration(
+                          hintText: 'Nhập họ và tên...',
+                          prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary, size: 20),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập họ và tên';
+                          }
+                          return null;
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mật khẩu';
-                    }
-                    if (value.length < 6) {
-                      return 'Mật khẩu phải dài ít nhất 6 ký tự';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
+                      const SizedBox(height: 18),
 
-                // Confirm Password
-                Text(
-                  'Xác nhận mật khẩu',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập lại mật khẩu...',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                      // Phone Number
+                      _buildFieldTitle('Số điện thoại'),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          hintText: 'Nhập số điện thoại...',
+                          prefixIcon: Icon(Icons.phone_android_outlined, color: AppColors.textSecondary, size: 20),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập số điện thoại';
+                          }
+                          final phoneRegex = RegExp(r'^(0[35789])+([0-9]{8})$');
+                          if (!phoneRegex.hasMatch(value.trim())) {
+                            return 'Số điện thoại không hợp lệ (ví dụ: 0987654321)';
+                          }
+                          return null;
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập lại mật khẩu';
-                    }
-                    if (value != _passwordController.text) {
-                      return 'Mật khẩu xác nhận không khớp';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
+                      const SizedBox(height: 18),
 
-                // Register Button
-                PrimaryButton(
-                  label: _isLoading ? 'Đang đăng ký...' : 'Đăng ký tài khoản',
-                  onPressed: _isLoading ? null : _handleRegister,
+                      // Email
+                      _buildFieldTitle('Email'),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: 'Nhập email...',
+                          prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary, size: 20),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập email';
+                          }
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value.trim())) {
+                            return 'Email không hợp lệ (ví dụ: name@example.com)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Password
+                      _buildFieldTitle('Mật khẩu'),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập mật khẩu...',
+                          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Vui lòng nhập mật khẩu';
+                          }
+                          if (value.length < 6) {
+                            return 'Mật khẩu phải dài ít nhất 6 ký tự';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Confirm Password
+                      _buildFieldTitle('Xác nhận mật khẩu'),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập lại mật khẩu...',
+                          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Vui lòng nhập lại mật khẩu';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Mật khẩu xác nhận không khớp';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
+
+                // Register Button with premium gradient and soft glow shadow
+                Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6B00), Color(0xFFFF3D00)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF3D00).withOpacity(0.24),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleRegister,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Đăng ký tài khoản',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 28),
 
                 // Login Link
                 Center(

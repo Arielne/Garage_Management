@@ -12,14 +12,10 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey, 
+    anonKey: SupabaseConfig.anonKey,
   );
 
-  runApp(
-    const ProviderScope(
-      child: GarageManagerApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: GarageManagerApp()));
 }
 
 class GarageManagerApp extends StatelessWidget {
@@ -31,7 +27,7 @@ class GarageManagerApp extends StatelessWidget {
       title: 'Garage Manager',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-   
+
       locale: const Locale('vi'),
       supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [

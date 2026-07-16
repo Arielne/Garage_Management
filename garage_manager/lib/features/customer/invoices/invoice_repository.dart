@@ -15,12 +15,54 @@ class InvoiceRepository {
   /// View đã join sẵn tên khách + biển số nên chỉ cần 1 câu select.
   /// Dùng cho: D9 (danh sách hóa đơn của quản lý), D1 (dashboard).
   Future<List<Invoice>> getInvoices() async {
-    final rows = await _client
-        .from('v_invoice_list')
-        .select()
-        .order('created_at', ascending: false);
+    final user = _client.auth.currentUser;
+    if (user == null) return [];
 
-    return rows.map<Invoice>(_invoiceFromRow).toList();
+    // Check user role
+    final profile = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    final role = profile?['role'] ?? 'customer';
+
+    if (role == 'customer') {
+      // 1. Get customer ID
+      final customerRow = await _client
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (customerRow == null) return [];
+      final customerId = customerRow['id'];
+
+      // 2. Get license plates
+      final vehicleRows = await _client
+          .from('vehicles')
+          .select('license_plate')
+          .eq('customer_id', customerId);
+
+      final plates = vehicleRows.map<String>((v) => v['license_plate'] as String).toList();
+      if (plates.isEmpty) return [];
+
+      final rows = await _client
+          .from('v_invoice_list')
+          .select()
+          .inFilter('license_plate', plates)
+          .order('created_at', ascending: false);
+
+      return rows.map<Invoice>(_invoiceFromRow).toList();
+    } else {
+      // Manager/Admin see all invoices
+      final rows = await _client
+          .from('v_invoice_list')
+          .select()
+          .order('created_at', ascending: false);
+
+      return rows.map<Invoice>(_invoiceFromRow).toList();
+    }
   }
 
   /// Lấy hóa đơn CỦA KHÁCH ĐANG ĐĂNG NHẬP (lọc theo customer_id).
@@ -144,14 +186,29 @@ final invoiceRepositoryProvider = Provider<InvoiceRepository>((ref) {
   return InvoiceRepository(Supabase.instance.client);
 });
 
+/// Id của tài khoản đang đăng nhập, tự tính lại mỗi khi auth đổi.
+/// Các provider lọc theo người dùng phải watch provider này: không có nó,
+/// cache của tài khoản trước vẫn được dùng lại sau khi đăng nhập tài khoản
+/// khác (khách mới thấy trống, hoặc thấy hóa đơn của khách cũ).
+/// Token tự gia hạn cũng bắn sự kiện, nhưng id không đổi nên Riverpod
+/// không báo xuống dưới → không nạp lại thừa.
+final authUserIdProvider = Provider<String?>((ref) {
+  final client = Supabase.instance.client;
+  final sub = client.auth.onAuthStateChange.listen((_) => ref.invalidateSelf());
+  ref.onDispose(sub.cancel);
+  return client.auth.currentUser?.id;
+});
+
 /// Danh sách TOÀN BỘ hóa đơn (D9, D1) — có sẵn 3 trạng thái
 /// loading (spinner) / error (lỗi) / data (list) khi UI watch.
 final invoiceListProvider = FutureProvider<List<Invoice>>((ref) {
+  ref.watch(authUserIdProvider);
   return ref.watch(invoiceRepositoryProvider).getInvoices();
 });
 
 /// Hóa đơn của khách đang đăng nhập (B4 — "Hóa đơn của tôi").
 final myInvoiceListProvider = FutureProvider<List<Invoice>>((ref) {
+  ref.watch(authUserIdProvider);
   return ref.watch(invoiceRepositoryProvider).getMyInvoices();
 });
 

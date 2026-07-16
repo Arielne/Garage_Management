@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/form_scaffold.dart';
+import '../manager/services/service_repository.dart';
 
-class AddServiceScreen extends StatefulWidget {
+class AddServiceScreen extends ConsumerStatefulWidget {
   const AddServiceScreen({super.key});
 
   @override
-  State<AddServiceScreen> createState() => _AddServiceScreenState();
+  ConsumerState<AddServiceScreen> createState() => _AddServiceScreenState();
 }
 
-class _AddServiceScreenState extends State<AddServiceScreen> {
+class _AddServiceScreenState extends ConsumerState<AddServiceScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  String _name = '';
+  String _priceText = '';
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState!.save();
+      
+      setState(() => _isLoading = true);
+      
+      try {
+        final price = num.tryParse(_priceText) ?? 0;
+        await ref.read(serviceRepositoryProvider).addService(_name, price);
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +49,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       body: Form(
         key: _formKey,
         child: FormScaffold(
-          submitLabel: 'Lưu',
-          onSubmit: () {
-            if (_formKey.currentState?.validate() ?? false) {
-              Navigator.pop(context);
-            }
-          },
+          submitLabel: _isLoading ? 'Đang lưu...' : 'Lưu',
+          onSubmit: _isLoading ? () {} : _submit,
           children: [
             const Text(
               'Tên dịch vụ',
@@ -36,23 +62,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 hintText: 'Nhập tên dịch vụ',
               ),
               validator: (value) => value == null || value.isEmpty ? 'Bắt buộc' : null,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Nhóm dịch vụ',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: 'maintenance',
-              items: const [
-                DropdownMenuItem(value: 'maintenance', child: Text('Bảo dưỡng định kỳ')),
-                DropdownMenuItem(value: 'cleaning', child: Text('Vệ sinh')),
-                DropdownMenuItem(value: 'repair', child: Text('Sửa chữa lớn')),
-                DropdownMenuItem(value: 'parts', child: Text('Thay phụ tùng')),
-              ],
-              onChanged: (value) {},
-              decoration: const InputDecoration(),
+              onSaved: (val) => _name = val ?? '',
             ),
             const SizedBox(height: 16),
             const Text(
@@ -66,30 +76,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 hintText: 'Nhập số tiền',
               ),
               validator: (value) => value == null || value.isEmpty ? 'Bắt buộc' : null,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Thời gian ước tính (phút)',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'VD: 30',
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Mô tả chi tiết',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Nhập mô tả các công đoạn...',
-              ),
+              onSaved: (val) => _priceText = val ?? '0',
             ),
           ],
         ),

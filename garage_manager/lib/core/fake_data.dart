@@ -60,6 +60,27 @@ final demoInvoices = [
       ),
     ],
   ),
+  Invoice(
+    code: 'HD-2026-003',
+    customerName: 'Lê Hoàng Hải',
+    vehiclePlate: '51-F1 999.99',
+    createdAt: DateTime(2026, 7, 5),
+    subtotal: 1200000,
+    total: 1200000,
+    status: InvoicePaymentStatus.unpaid,
+    lineItems: const [
+      InvoiceLineItem(
+        name: 'Sửa chữa phanh xe',
+        type: InvoiceLineItemType.service,
+        unitPrice: 200000,
+      ),
+      InvoiceLineItem(
+        name: 'Thay lốp trước',
+        type: InvoiceLineItemType.part,
+        unitPrice: 1000000,
+      ),
+    ],
+  ),
 ];
 
 const demoRepairStages = [

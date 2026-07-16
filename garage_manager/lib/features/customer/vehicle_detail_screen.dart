@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
+import '../../core/utils/image_upload_helper.dart';
 import '../../core/app_routes.dart';
 import '../../core/models.dart';
 import '../../theme/app_colors.dart';
@@ -31,131 +34,25 @@ class VehicleDetailScreen extends ConsumerWidget {
       return DateTime.now();
     }
 
-    List<InvoiceLineItem> items = [];
-    String subtotal = history.cost;
-    String discount = '0đ';
-    String tax = '0đ';
-
-    if (history.workOrder == 'WO-2026-012') {
-      items = [
-        InvoiceLineItem(
-          name: 'Pô Akrapovic Carbon chính hãng',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('2.000.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Công căn chỉnh xăng gió (Dynojet)',
-          type: InvoiceLineItemType.service,
-          quantity: 1,
-          unitPrice: parseCurrency('450.000đ'),
-        ),
-      ];
-      subtotal = '2.450.000đ';
-    } else if (history.workOrder == 'WO-2026-001') {
-      items = [
-        InvoiceLineItem(
-          name: 'Lốp Michelin City Grip 2 (Trước & Sau)',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('1.000.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Công thay vỏ & cân mâm',
-          type: InvoiceLineItemType.service,
-          quantity: 1,
-          unitPrice: parseCurrency('200.000đ'),
-        ),
-      ];
-      subtotal = '1.200.000đ';
-    } else if (history.workOrder == 'WO-2026-004') {
-      items = [
-        InvoiceLineItem(
-          name: 'Nhớt Motul 300V 10W40 1L',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('450.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Lọc gió K&N Vario/Click',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('250.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Công vệ sinh nồi & kiểm tra truyền động',
-          type: InvoiceLineItemType.service,
-          quantity: 1,
-          unitPrice: parseCurrency('150.000đ'),
-        ),
-      ];
-      subtotal = '850.000đ';
-    } else if (history.workOrder == 'WO-2026-009') {
-      items = [
-        InvoiceLineItem(
-          name: 'Bộ nhông sên dĩa DID vàng Raider/Satria',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('1.200.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Má phanh Nissin trước & sau',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('400.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Công lắp ráp & căn chỉnh sên',
-          type: InvoiceLineItemType.service,
-          quantity: 1,
-          unitPrice: parseCurrency('200.000đ'),
-        ),
-      ];
-      subtotal = '1.800.000đ';
-    } else if (history.workOrder == 'WO-2026-011') {
-      items = [
-        InvoiceLineItem(
-          name: 'Nhớt Wolver Special 10W40 0.8L',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('180.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Nhớt hộp số (láp) Liqui Moly Racing',
-          type: InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency('90.000đ'),
-        ),
-        InvoiceLineItem(
-          name: 'Công thay nhớt nhanh',
-          type: InvoiceLineItemType.service,
-          quantity: 1,
-          unitPrice: parseCurrency('50.000đ'),
-        ),
-      ];
-      subtotal = '320.000đ';
-    } else {
-      items = [
-        InvoiceLineItem(
-          name: history.notes,
-          type: history.type == 'Độ & Nâng cấp' 
-              ? InvoiceLineItemType.service 
-              : InvoiceLineItemType.part,
-          quantity: 1,
-          unitPrice: parseCurrency(history.cost),
-        ),
-      ];
-      subtotal = history.cost;
-    }
+    final items = [
+      InvoiceLineItem(
+        name: history.notes,
+        type: history.type == 'Độ & Nâng cấp' 
+            ? InvoiceLineItemType.service 
+            : InvoiceLineItemType.part,
+        quantity: 1,
+        unitPrice: parseCurrency(history.cost),
+      ),
+    ];
 
     return Invoice(
       code: history.workOrder,
       customerName: customerName,
       vehiclePlate: vehiclePlate,
       createdAt: parseDate(history.date),
-      subtotal: parseCurrency(subtotal),
-      discountAmount: parseCurrency(discount),
-      tax: parseCurrency(tax),
+      subtotal: parseCurrency(history.cost),
+      discountAmount: 0,
+      tax: 0,
       total: parseCurrency(history.cost),
       status: InvoicePaymentStatus.paid,
       lineItems: items,
@@ -207,17 +104,20 @@ class VehicleDetailScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgApp,
       appBar: AppBar(
-        title: const Text('Chi tiết xe'),
-        backgroundColor: AppColors.surfaceDark,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Chi tiết xe',
+          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) {
               if (value == 'edit') {
                 _showEditVehicleDialog(context, ref, vehicle);
@@ -263,16 +163,25 @@ class VehicleDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
                           color: AppColors.accentSoft,
                           shape: BoxShape.circle,
+                          image: vehicle?.imageUrl != null && vehicle!.imageUrl!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(vehicle.imageUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: const Icon(
-                          Icons.motorcycle,
-                          size: 32,
-                          color: AppColors.accent,
-                        ),
+                        child: vehicle?.imageUrl != null && vehicle!.imageUrl!.isNotEmpty
+                            ? null
+                            : const Icon(
+                                Icons.motorcycle,
+                                size: 32,
+                                color: AppColors.accent,
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -503,113 +412,234 @@ class VehicleDetailScreen extends ConsumerWidget {
     final ccController = TextEditingController(text: vehicle.engineCc?.toString() ?? '');
     final odoController = TextEditingController(text: vehicle.odometer?.toString() ?? '');
 
+    XFile? selectedImage;
+    Uint8List? selectedImageBytes;
+    bool isUploading = false;
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColors.surfaceCard,
-          title: Text(
-            'Sửa thông tin xe',
-            style: GoogleFonts.sora(fontWeight: FontWeight.w700),
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Plate
-                  Text('Biển số xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: plateController,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(hintText: 'Biển số...'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập biển số' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Model Name
-                  Text('Tên dòng xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(hintText: 'Dòng xe...'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập tên dòng xe' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Year
-                  Text('Năm sản xuất', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: yearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Năm...'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // CC
-                  Text('Dung tích (cc)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: ccController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Dung tích cc...'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ODO
-                  Text('Số ODO (km)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  TextFormField(
-                    controller: odoController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Số km...'),
-                  ),
-                ],
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceCard,
+              title: Text(
+                'Sửa thông tin xe',
+                style: GoogleFonts.sora(fontWeight: FontWeight.w700),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  try {
-                    final supabase = Supabase.instance.client;
-                    await supabase.from('vehicles').update({
-                      'model': nameController.text.trim(),
-                      'license_plate': plateController.text.trim().toUpperCase(),
-                      'year': int.tryParse(yearController.text.trim()),
-                      'engine_cc': int.tryParse(ccController.text.trim()),
-                      'odometer': int.tryParse(odoController.text.trim()),
-                    }).eq('license_plate', vehicle.plate);
-                    
-                    await ref.read(customerProvider.notifier).loadCustomers();
-                    
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã cập nhật thông tin xe!'),
-                          backgroundColor: AppColors.statusDone,
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image picker in Dialog
+                      Center(
+                        child: GestureDetector(
+                          onTap: isUploading ? null : () async {
+                            showModalBottomSheet(
+                              context: dialogContext,
+                              backgroundColor: AppColors.surfaceCard,
+                              builder: (context) {
+                                return SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                                        title: const Text('Chọn ảnh từ thư viện'),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          final file = await ImageUploadHelper.pickImage(ImageSource.gallery);
+                                          if (file != null) {
+                                            final bytes = await file.readAsBytes();
+                                            setState(() {
+                                              selectedImage = file;
+                                              selectedImageBytes = bytes;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
+                                        title: const Text('Chụp ảnh mới'),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+                                          final file = await ImageUploadHelper.pickImage(ImageSource.camera);
+                                          if (file != null) {
+                                            final bytes = await file.readAsBytes();
+                                            setState(() {
+                                              selectedImage = file;
+                                              selectedImageBytes = bytes;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 40,
+                                backgroundColor: AppColors.borderSubtle,
+                                backgroundImage: selectedImageBytes != null 
+                                    ? MemoryImage(selectedImageBytes!) 
+                                    : (vehicle.imageUrl != null && vehicle.imageUrl!.isNotEmpty
+                                        ? NetworkImage(vehicle.imageUrl!) as ImageProvider
+                                        : null),
+                                child: selectedImageBytes == null && (vehicle.imageUrl == null || vehicle.imageUrl!.isEmpty)
+                                    ? const Icon(
+                                        Icons.add_a_photo_outlined,
+                                        size: 24,
+                                        color: AppColors.textSecondary,
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: AppColors.accent,
+                                  child: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Plate
+                      Text('Biển số xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: plateController,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(hintText: 'Biển số...'),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập biển số' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Model Name
+                      Text('Tên dòng xe', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(hintText: 'Dòng xe...'),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập tên dòng xe' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Year
+                      Text('Năm sản xuất', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: yearController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Năm...'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // CC
+                      Text('Dung tích (cc)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: ccController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Dung tích cc...'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ODO
+                      Text('Số ODO (km)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: odoController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(hintText: 'Số km...'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
+                  child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+                ),
+                TextButton(
+                  onPressed: isUploading ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setState(() {
+                        isUploading = true;
+                      });
+                      try {
+                        String? newImageUrl = vehicle.imageUrl;
+                        if (selectedImage != null) {
+                          newImageUrl = await ImageUploadHelper.uploadVehicleImage(selectedImage!);
+                          if (newImageUrl == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Lỗi tải ảnh lên Supabase Storage! Vui lòng kiểm tra lại cấu hình bucket.'),
+                                backgroundColor: AppColors.statusError,
+                              ),
+                            );
+                            setState(() {
+                              isUploading = false;
+                            });
+                            return;
+                          }
+                        }
+
+                        final supabase = Supabase.instance.client;
+                        await supabase.from('vehicles').update({
+                          'model': nameController.text.trim(),
+                          'license_plate': plateController.text.trim().toUpperCase(),
+                          'year': int.tryParse(yearController.text.trim()),
+                          'engine_cc': int.tryParse(ccController.text.trim()),
+                          'odometer': int.tryParse(odoController.text.trim()),
+                          'image_url': newImageUrl,
+                        }).eq('license_plate', vehicle.plate);
+                        
+                        await ref.read(customerProvider.notifier).loadCustomers();
+                        
+                        if (context.mounted) {
+                          Navigator.pop(dialogContext);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã cập nhật thông tin xe!'),
+                              backgroundColor: AppColors.statusDone,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        print('Error updating vehicle: $e');
+                      } finally {
+                        setState(() {
+                          isUploading = false;
+                        });
+                      }
                     }
-                  } catch (e) {
-                    print('Error updating vehicle: $e');
-                  }
-                }
-              },
-              child: const Text('Lưu', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
-            ),
-          ],
+                  },
+                  child: Text(
+                    isUploading ? 'Đang lưu...' : 'Lưu', 
+                    style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -618,7 +648,7 @@ class VehicleDetailScreen extends ConsumerWidget {
   void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.surfaceCard,
           title: Text(
@@ -628,7 +658,7 @@ class VehicleDetailScreen extends ConsumerWidget {
           content: Text('Bạn có chắc chắn muốn xóa xe biển số $vehiclePlate khỏi hệ thống không?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
             ),
             TextButton(
@@ -640,8 +670,8 @@ class VehicleDetailScreen extends ConsumerWidget {
                   await ref.read(customerProvider.notifier).loadCustomers();
                   
                   if (context.mounted) {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Close detail screen
+                    Navigator.pop(dialogContext); // Close dialog
+                    Navigator.pop(context);       // Close detail screen
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Đã xóa xe thành công!'),

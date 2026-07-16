@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_scaffold.dart';
 import 'job_list_screen.dart';
+import 'technician_schedule_screen.dart';
 import 'technician_profile_screen.dart';
 
 class TechnicianShell extends StatefulWidget {
@@ -20,14 +21,11 @@ class _TechnicianShellState extends State<TechnicianShell> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const JobListScreen(),
-      const _TechnicianPlaceholderPage(
-        title: 'Thông báo',
-        icon: Icons.notifications_outlined,
-      ),
+      const TechnicianScheduleScreen(),
       const TechnicianProfileScreen(),
     ];
 
-    final titles = ['Công việc của tôi', 'Thông báo', 'Tài khoản'];
+    final titles = ['Phiếu của tôi', 'Lịch làm việc', 'Tài khoản'];
 
     return AppScaffold(
       title: titles[_currentIndex],
@@ -38,8 +36,8 @@ class _TechnicianShellState extends State<TechnicianShell> {
         });
       },
       navItems: const [
-        AppNavItem(icon: Icons.assignment_outlined, label: 'Công việc'),
-        AppNavItem(icon: Icons.notifications_outlined, label: 'Thông báo'),
+        AppNavItem(icon: Icons.assignment_outlined, label: 'Phiếu của tôi'),
+        AppNavItem(icon: Icons.calendar_today_outlined, label: 'Lịch'),
         AppNavItem(icon: Icons.person_outline, label: 'Tài khoản'),
       ],
       body: pages[_currentIndex],
@@ -71,7 +69,7 @@ class _TechnicianPlaceholderPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tính năng đang được phát triển.',
+            'Màn hình lịch đang được thiết kế.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,

@@ -10,6 +10,7 @@ class VehicleModel {
   final int? engineCc;
   final int? year;
   final int? odometer;
+  final String? imageUrl;
 
   VehicleModel({
     required this.name,
@@ -20,6 +21,7 @@ class VehicleModel {
     this.engineCc,
     this.year,
     this.odometer,
+    this.imageUrl,
   });
 
   VehicleModel copyWith({
@@ -31,6 +33,7 @@ class VehicleModel {
     int? engineCc,
     int? year,
     int? odometer,
+    String? imageUrl,
   }) {
     return VehicleModel(
       name: name ?? this.name,
@@ -41,6 +44,7 @@ class VehicleModel {
       engineCc: engineCc ?? this.engineCc,
       year: year ?? this.year,
       odometer: odometer ?? this.odometer,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }
@@ -64,6 +68,7 @@ class ServiceHistoryModel {
 }
 
 class CustomerDetailModel {
+  final int? id;
   final String name;
   final String phone;
   final String email;
@@ -74,6 +79,7 @@ class CustomerDetailModel {
   final String? userId;
 
   CustomerDetailModel({
+    this.id,
     required this.name,
     required this.phone,
     required this.email,
@@ -85,6 +91,7 @@ class CustomerDetailModel {
   });
 
   CustomerDetailModel copyWith({
+    int? id,
     String? name,
     String? phone,
     String? email,
@@ -95,6 +102,7 @@ class CustomerDetailModel {
     String? userId,
   }) {
     return CustomerDetailModel(
+      id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
@@ -204,12 +212,14 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
               engineCc: v['engine_cc'],
               year: v['year'],
               odometer: v['odometer'],
+              imageUrl: v['image_url'],
             ),
           );
         }
 
         loaded.add(
           CustomerDetailModel(
+            id: c['id'] as int?,
             name: c['full_name'] ?? 'Không tên',
             phone: c['phone'] ?? '',
             email: c['email'] ?? '',
@@ -282,6 +292,7 @@ class CustomerNotifier extends Notifier<List<CustomerDetailModel>> {
           'engine_cc': vehicle.engineCc,
           'year': vehicle.year,
           'odometer': vehicle.odometer,
+          'image_url': vehicle.imageUrl,
         });
         await loadCustomers();
       }

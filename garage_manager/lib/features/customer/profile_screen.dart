@@ -7,15 +7,19 @@ import '../../core/app_routes.dart';
 import '../../widgets/app_card.dart';
 import 'edit_personal_info_screen.dart';
 import 'edit_address_screen.dart';
+import 'customer_vouchers_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../manager/customers/customer_provider.dart';
+
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // Local state for user profile information
   bool _isLoading = true;
   String _name = '';
@@ -158,6 +162,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'phone': result['phone'],
                           'email': result['email'],
                         }).eq('user_id', user.id);
+
+                        // Refresh customer list in riverpod state
+                        ref.read(customerProvider.notifier).loadCustomers();
                       }
                     } catch (e) {
                       print('Error updating profile: $e');
@@ -189,6 +196,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _address = result['address'] ?? _address;
                     });
                   }
+                },
+              ),
+              _MenuItem(
+                icon: Icons.confirmation_number_outlined,
+                title: 'Ví Voucher của tôi',
+                subtitle: 'Xem khuyến mãi & giảm giá',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CustomerVouchersScreen(),
+                    ),
+                  );
                 },
               ),
             ],
