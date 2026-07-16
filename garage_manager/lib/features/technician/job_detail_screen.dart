@@ -124,7 +124,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
       final partsRes = await _supabase
           .from('work_order_parts')
-          .select('quantity, unit_price')
+          .select('part_id, quantity, unit_price')
           .eq('work_order_id', workOrderId);
 
       num totalParts = 0;
@@ -142,6 +142,18 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               'note': 'Tự động xuất kho cho phiếu PH-$workOrderId',
               'date': DateTime.now().toIso8601String(),
             });
+            final currentPart = await _supabase
+                .from('parts')
+                .select('stock_qty')
+                .eq('id', p['part_id'])
+                .single();
+
+            final currentStock = (currentPart['stock_qty'] ?? 0) as num;
+
+            await _supabase
+                .from('parts')
+                .update({'stock_qty': currentStock - qty})
+                .eq('id', p['part_id']);
           } catch (e) {
             debugPrint('Lỗi ghi sổ kho: $e');
           }

@@ -6,10 +6,11 @@ import '../../../core/models.dart';
 import '../../../theme/app_colors.dart';
 import 'inventory_repository.dart';
 
-final inventoryTransactionsProvider = FutureProvider.autoDispose<List<InventoryTransaction>>((ref) async {
-  final repo = ref.watch(inventoryRepositoryProvider);
-  return repo.getTransactions();
-});
+final inventoryTransactionsProvider =
+    FutureProvider.autoDispose<List<InventoryTransaction>>((ref) async {
+      final repo = ref.watch(inventoryRepositoryProvider);
+      return repo.getTransactions();
+    });
 
 class InventoryReportDialog extends ConsumerWidget {
   const InventoryReportDialog({super.key});
@@ -30,12 +31,14 @@ class InventoryReportDialog extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Lịch Sử Nhập / Xuất Kho',
-                  style: GoogleFonts.sora(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Text(
+                    'Lịch Sử Nhập / Xuất Kho',
+                    style: GoogleFonts.sora(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -61,12 +64,21 @@ class InventoryReportDialog extends ConsumerWidget {
                       final isImport = tx.type == TransactionType.import;
 
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 8,
+                        ),
                         leading: CircleAvatar(
-                          backgroundColor: isImport ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                          backgroundColor: isImport
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.orange.withOpacity(0.1),
                           child: Icon(
-                            isImport ? Icons.arrow_downward : Icons.arrow_upward,
-                            color: isImport ? Colors.green[700] : Colors.orange[700],
+                            isImport
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
+                            color: isImport
+                                ? Colors.green[700]
+                                : Colors.orange[700],
                             size: 20,
                           ),
                         ),
@@ -84,14 +96,21 @@ class InventoryReportDialog extends ConsumerWidget {
                             Text(
                               '${isImport ? "Nhập" : "Xuất"} ${tx.quantity} đơn vị',
                               style: GoogleFonts.inter(
-                                color: isImport ? Colors.green[700] : Colors.orange[700],
+                                color: isImport
+                                    ? Colors.green[700]
+                                    : Colors.orange[700],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             if (tx.note.isNotEmpty) ...[
                               const SizedBox(height: 4),
-                              Text('Ghi chú: ${tx.note}', style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                            ]
+                              Text(
+                                'Ghi chú: ${tx.note}',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         trailing: Text(
@@ -104,7 +123,7 @@ class InventoryReportDialog extends ConsumerWidget {
                       );
                     },
                   );
-                }
+                },
               ),
             ),
           ],
